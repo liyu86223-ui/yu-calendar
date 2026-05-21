@@ -171,7 +171,7 @@
       const [showSettings, setShowSettings] = useState(false);
       const [confirmModal, setConfirmModal] = useState(null);
       const [toast, setToast] = useState(null);
-      const [eventMenu, setEventMenu] = useState(null); // { id, x, y }
+      const [eventMenu, setEventMenu] = useState(null);
       const [dragInfo, setDragInfo] = useState(null);
 
       const dragStateRef = useRef(null);
@@ -184,7 +184,6 @@
       const firstSaveSkipRef = useRef(true);
       const toastTimerRef = useRef(null);
 
-      /* —— 自动保存 —— */
       useEffect(() => {
         if (firstSaveSkipRef.current) { firstSaveSkipRef.current = false; return; }
         try {
@@ -194,7 +193,6 @@
         } catch (e) {}
       }, [events, categories]);
 
-      /* —— 深色模式 —— */
       useEffect(() => {
         const root = document.documentElement;
         if (darkMode) root.classList.add('dark');
@@ -202,7 +200,6 @@
         try { localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light'); } catch {}
       }, [darkMode]);
 
-      /* —— Toast —— */
       const showToast = (msg, opts = {}) => {
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         setToast({ msg, ...opts });
@@ -210,7 +207,6 @@
         toastTimerRef.current = setTimeout(() => setToast(null), dur);
       };
 
-      /* —— 屏幕宽度 —— */
       useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
         check();
@@ -353,7 +349,6 @@
         return d < new Date();
       };
 
-      /* —— 事项操作 —— */
       const toggleComplete = (id) => {
         setEvents(prev => prev.map(e => e.id === id ? { ...e, completed: !e.completed } : e));
       };
@@ -437,7 +432,6 @@
             justDraggedRef.current = true;
             setTimeout(() => { justDraggedRef.current = false; }, 250);
           } else {
-            // 轻点 → 弹出操作菜单
             openEventMenu(s.id, e.clientX, e.clientY);
           }
           dragStateRef.current = null;
@@ -548,7 +542,6 @@
         setCategories(cs => [...cs, { id: newId, name: '新分类', color: avail }]);
       };
 
-      /* —— 导出 / 导入 —— */
       const handleExport = () => {
         try {
           const data = { events, categories, exportedAt: new Date().toISOString(), version: 1 };
@@ -691,7 +684,6 @@
       const MONTH_TOP_OFFSET = 30;
       const MONTH_LANE_CAP = 3;
 
-      /* —— 操作菜单位置计算 —— */
       const renderEventMenu = () => {
         if (!eventMenu) return null;
         const ev = events.find(x => x.id === eventMenu.id);
@@ -887,7 +879,7 @@
                         key={dayIdx}
                         data-empty="true"
                         onClick={(e) => onColumnClick(e, d)}
-                        className={`flex-1 border-l border-slate-100 dark:border-slate-800 relative cursor-pointer min-w-0 ${isToday ? 'bg-rose-50/30 dark:bg-rose-900/10' : ''}`}
+                        className="flex-1 border-l border-slate-100 dark:border-slate-800 relative cursor-pointer min-w-0"
                       >
                         {hours.map(h => (
                           <div key={h} data-empty="true" style={{height:HOUR_HEIGHT}} className="border-b border-slate-100 dark:border-slate-800"></div>
@@ -1027,7 +1019,7 @@
                               }}
                               className={`relative border-l border-slate-100 dark:border-slate-800 first:border-l-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${
                                 !inMonth ? 'bg-slate-50/50 dark:bg-slate-950/50' : ''
-                              } ${isToday ? 'bg-rose-50/40 dark:bg-rose-900/10' : ''}`}
+                              }`}
                               data-empty="true"
                             >
                               <div className="flex justify-end p-1.5" data-empty="true">
@@ -1080,12 +1072,7 @@
                               key={`${bar.ev.id}-${idx}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (isMobile) {
-                                  // 移动端：弹出操作菜单
-                                  openEventMenu(bar.ev.id, e.clientX, e.clientY);
-                                } else {
-                                  openEventMenu(bar.ev.id, e.clientX, e.clientY);
-                                }
+                                openEventMenu(bar.ev.id, e.clientX, e.clientY);
                               }}
                               className={`absolute rounded-md text-[11px] font-medium px-1.5 py-1 text-left leading-tight overflow-hidden ${cls}`}
                               style={{
@@ -1126,7 +1113,6 @@
             ))}
           </div>
 
-          {/* ===== 事项操作菜单 ===== */}
           {renderEventMenu()}
 
           {/* ===== 编辑事项弹窗 ===== */}
@@ -1475,7 +1461,6 @@
             </div>
           )}
 
-          {/* ===== Toast（含撤销） ===== */}
           {toast && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-1 px-1 py-1 pl-4 rounded-full shadow-2xl text-sm bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 max-w-[90vw]">
               <span className="truncate pr-1">{toast.msg}</span>
