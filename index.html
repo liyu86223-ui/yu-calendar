@@ -519,13 +519,24 @@
         }
       };
 
-      const onColumnClick = (e, day) => {
-        if (justDraggedRef.current) return;
-        if (!e.target.dataset || !e.target.dataset.empty) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const hour = Math.floor(y / HOUR_HEIGHT) + START_HOUR;
-        openNewEvent(day, hour);
+      // 月视图点击日期：移动端跳到日视图，桌面端跳到该周的周视图
+      const onMonthDayTap = (d) => {
+        if (isMobile) {
+          setSelectedDay(d);
+          setView('day');
+        } else {
+          const today0 = new Date(); today0.setHours(0,0,0,0);
+          const baseMonday = new Date(today0);
+          const bd = baseMonday.getDay() || 7;
+          baseMonday.setDate(baseMonday.getDate() - bd + 1);
+          const targetMonday = new Date(d);
+          const td = targetMonday.getDay() || 7;
+          targetMonday.setDate(targetMonday.getDate() - td + 1);
+          targetMonday.setHours(0,0,0,0);
+          const diffWeeks = Math.round((targetMonday - baseMonday) / (7*24*60*60*1000));
+          setWeekOffset(diffWeeks);
+          setView('week');
+        }
       };
 
       const updateCat = (id, patch) => setCategories(cs => cs.map(c => c.id === id ? { ...c, ...patch } : c));
@@ -671,11 +682,6 @@
       const offsetIsZero = view === 'day'
         ? formatDate(selectedDay) === todayStr
         : view === 'week' ? weekOffset === 0 : monthOffset === 0;
-
-      const onMonthDayTap = (d) => {
-        if (isMobile) { setSelectedDay(d); setView('day'); }
-        else { openNewEvent(d); }
-      };
 
       const pillBase = "h-9 flex items-center bg-slate-100 dark:bg-slate-800 rounded-full";
 
@@ -877,12 +883,10 @@
                     return (
                       <div
                         key={dayIdx}
-                        data-empty="true"
-                        onClick={(e) => onColumnClick(e, d)}
-                        className="flex-1 border-l border-slate-100 dark:border-slate-800 relative cursor-pointer min-w-0"
+                        className="flex-1 border-l border-slate-100 dark:border-slate-800 relative min-w-0"
                       >
                         {hours.map(h => (
-                          <div key={h} data-empty="true" style={{height:HOUR_HEIGHT}} className="border-b border-slate-100 dark:border-slate-800"></div>
+                          <div key={h} style={{height:HOUR_HEIGHT}} className="border-b border-slate-100 dark:border-slate-800"></div>
                         ))}
 
                         {displayEvents.map(ev => {
