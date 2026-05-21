@@ -42,7 +42,6 @@
     const MapPin       = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
     const Users        = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>;
     const Sparkles     = (p) => <Icon {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></Icon>;
-    const CornerDown   = (p) => <Icon {...p}><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></Icon>;
 
     /* ===================== App ===================== */
 
@@ -498,7 +497,6 @@
         return `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
       })();
 
-      // 标题区固定最小宽度，避免切换日期时箭头位置抖动
       const headerLabelMinWidth = view === 'day' ? '5.5rem' : '6.5rem';
 
       const goPrev = () => {
@@ -531,19 +529,23 @@
         }
       };
 
-      // 统一胶囊样式
       const pillBase = "h-9 flex items-center bg-slate-100 rounded-full";
       const iconBtn = "h-9 w-9 flex items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 transition";
+
+      // 月视图常量
+      const MONTH_LANE_HEIGHT = 38;
+      const MONTH_BAR_HEIGHT = 34;
+      const MONTH_TOP_OFFSET = 30;
+      const MONTH_LANE_CAP = 3;
 
       return (
         <div className="w-full h-screen bg-slate-50 flex flex-col font-sans"
           style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
                    userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
 
-          {/* ===== 顶栏（统一为：胶囊容器 / 图标按钮 / 主胶囊） ===== */}
+          {/* ===== 顶栏 ===== */}
           <div className="bg-white border-b border-slate-200 px-3 py-2.5 flex items-center justify-between shrink-0 gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              {/* 日期导航胶囊 */}
               <div className={pillBase}>
                 <button onClick={goPrev}
                   className="h-9 w-8 flex items-center justify-center rounded-l-full hover:bg-slate-200/70 transition">
@@ -561,20 +563,17 @@
                 </button>
               </div>
 
-              {/* 回到今天 */}
               {!offsetIsZero && (
                 <button
                   onClick={goToday}
-                  className="h-9 px-3 rounded-full bg-sky-50 text-sky-600 hover:bg-sky-100 transition text-xs font-medium flex items-center gap-1 shrink-0"
+                  className="h-9 px-3.5 rounded-full bg-sky-50 text-sky-600 hover:bg-sky-100 transition text-xs font-medium shrink-0"
                 >
-                  <CornerDown className="w-3.5 h-3.5" strokeWidth={2.25}/>
-                  <span>今天</span>
+                  today
                 </button>
               )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* 视图切换胶囊 */}
               <div className={`${pillBase} p-0.5`}>
                 {isMobile ? (
                   <>
@@ -779,10 +778,9 @@
                 <div className="flex flex-col h-full">
                   {monthInfo.weeks.map((wDays, wIdx) => {
                     const bars = computeWeekBars(wDays);
-                    const laneCap = 3;
                     const overflow = wDays.map((d, di) => {
                       const dStr = formatDate(d);
-                      return bars.filter(b => b.lane >= laneCap && b.startCol <= di && b.endCol >= di && (b.ev.date <= dStr && (b.ev.endDate || b.ev.date) >= dStr)).length;
+                      return bars.filter(b => b.lane >= MONTH_LANE_CAP && b.startCol <= di && b.endCol >= di && (b.ev.date <= dStr && (b.ev.endDate || b.ev.date) >= dStr)).length;
                     });
 
                     return (
@@ -808,7 +806,7 @@
                                   inMonth ? 'text-slate-700' : 'text-slate-400'
                                 }`}>{d.getDate()}</div>
                               </div>
-                              <div data-empty="true" style={{ height: laneCap * 22 + (overflow[di] > 0 ? 18 : 0) }}></div>
+                              <div data-empty="true" style={{ height: MONTH_LANE_CAP * MONTH_LANE_HEIGHT + (overflow[di] > 0 ? 18 : 0) }}></div>
                               {overflow[di] > 0 && (
                                 <button
                                   onClick={(e) => {
@@ -827,8 +825,8 @@
                                       setView('week');
                                     }
                                   }}
-                                  className="absolute left-1 right-1 text-xs text-slate-500 hover:text-rose-600 text-left px-1.5 py-0.5"
-                                  style={{ top: 28 + laneCap * 22 }}
+                                  className="absolute left-1 right-1 text-[11px] text-slate-500 hover:text-rose-600 text-left px-1.5 py-0.5"
+                                  style={{ top: MONTH_TOP_OFFSET + MONTH_LANE_CAP * MONTH_LANE_HEIGHT }}
                                 >
                                   +{overflow[di]} 更多
                                 </button>
@@ -836,19 +834,20 @@
                             </div>
                           );
                         })}
-                        {bars.filter(b => b.lane < laneCap).map((bar, idx) => {
+                        {bars.filter(b => b.lane < MONTH_LANE_CAP).map((bar, idx) => {
                           const style = getStyle(bar.ev.category);
                           const missed = isMissed(bar.ev);
-                          const top = 28 + bar.lane * 22;
+                          const top = MONTH_TOP_OFFSET + bar.lane * MONTH_LANE_HEIGHT;
                           const leftPct = (bar.startCol / 7) * 100;
                           const widthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+                          const isSingleDay = bar.startCol === bar.endCol;
+
+                          // 浅色 = 未完成；深色 = 完成；missed = 灰
                           let cls = '';
                           if (missed) cls = 'bg-slate-200 text-slate-400 line-through';
                           else if (bar.ev.completed) cls = `${style.deep} ${style.deepText}`;
                           else cls = `${style.barLight} ${style.text}`;
 
-                          // 单日条目：手机端只显示标题；桌面端显示「时间 标题」
-                          const isSingleDay = bar.startCol === bar.endCol;
                           return (
                             <button
                               key={`${bar.ev.id}-${idx}`}
@@ -862,21 +861,23 @@
                                   setEditing({ ...bar.ev });
                                 }
                               }}
-                              className={`absolute rounded text-xs font-medium px-1.5 py-0.5 truncate text-left flex items-center gap-1 ${cls}`}
+                              className={`absolute rounded-md text-[11px] font-medium px-1.5 py-1 text-left leading-tight overflow-hidden ${cls}`}
                               style={{
                                 top,
                                 left: `calc(${leftPct}% + 4px)`,
                                 width: `calc(${widthPct}% - 8px)`,
-                                height: 18,
+                                height: MONTH_BAR_HEIGHT,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
                               }}
                               title={`${bar.ev.title} ${formatTime(bar.ev.start)}`}
                             >
-                              {bar.ev.completed && <Check className="w-3 h-3 shrink-0" strokeWidth={3}/>}
-                              {/* 标题作为主字段 */}
-                              <span className="truncate flex-1">{bar.ev.title}</span>
-                              {/* 时间仅在桌面端单日条目展示 */}
+                              {bar.ev.title}
                               {!isMobile && isSingleDay && (
-                                <span className="opacity-50 shrink-0 text-[10px]">{formatTime(bar.ev.start)}</span>
+                                <span className="opacity-60 ml-1 font-normal">{formatTime(bar.ev.start)}</span>
                               )}
                             </button>
                           );
