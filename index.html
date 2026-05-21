@@ -2,10 +2,18 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="我的日程" />
+  <meta name="theme-color" content="#f43f5e" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
   <title>我的日程</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -17,9 +25,10 @@
       -webkit-tap-highlight-color: transparent;
     }
     input[type="date"], input[type="time"] { -webkit-appearance: none; }
+    html.dark { color-scheme: dark; }
   </style>
 </head>
-<body>
+<body class="bg-slate-50 dark:bg-slate-950">
   <div id="root"></div>
 
   <script type="text/babel" data-presets="react">
@@ -41,36 +50,46 @@
     const MapPin       = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
     const Users        = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>;
     const Sparkles     = (p) => <Icon {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></Icon>;
+    const Settings     = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+    const Moon         = (p) => <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Icon>;
+    const Sun          = (p) => <Icon {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></Icon>;
+    const Download     = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
+    const Upload       = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
+    const Tag          = (p) => <Icon {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></Icon>;
+    const Edit2        = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
+    const RotateCcw    = (p) => <Icon {...p}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></Icon>;
 
-    /* ===================== App ===================== */
-
+    /* ===================== 常量与默认数据 ===================== */
     const HOUR_HEIGHT = 90;
     const START_HOUR = 0;
     const END_HOUR = 23;
     const TIME_COL_WIDTH = 56;
     const DEFAULT_SCROLL_HOUR = 7;
 
+    const STORAGE_KEY = 'planner_data_v1';
+    const THEME_KEY = 'planner_theme';
+
     const COLOR_PALETTE = {
-      rose:    { light: 'bg-rose-50',    border: 'border-rose-300',    text: 'text-rose-700',    deep: 'bg-rose-200',    deepText: 'text-rose-900',    deepBorder: 'border-rose-400',    dot: 'bg-rose-400',    barLight: 'bg-rose-100' },
-      red:     { light: 'bg-red-50',     border: 'border-red-300',     text: 'text-red-700',     deep: 'bg-red-200',     deepText: 'text-red-900',     deepBorder: 'border-red-400',     dot: 'bg-red-400',     barLight: 'bg-red-100' },
-      pink:    { light: 'bg-pink-50',    border: 'border-pink-300',    text: 'text-pink-700',    deep: 'bg-pink-200',    deepText: 'text-pink-900',    deepBorder: 'border-pink-400',    dot: 'bg-pink-400',    barLight: 'bg-pink-100' },
-      fuchsia: { light: 'bg-fuchsia-50', border: 'border-fuchsia-300', text: 'text-fuchsia-700', deep: 'bg-fuchsia-200', deepText: 'text-fuchsia-900', deepBorder: 'border-fuchsia-400', dot: 'bg-fuchsia-400', barLight: 'bg-fuchsia-100' },
-      purple:  { light: 'bg-purple-50',  border: 'border-purple-300',  text: 'text-purple-700',  deep: 'bg-purple-200',  deepText: 'text-purple-900',  deepBorder: 'border-purple-400',  dot: 'bg-purple-400',  barLight: 'bg-purple-100' },
-      violet:  { light: 'bg-violet-50',  border: 'border-violet-300',  text: 'text-violet-700',  deep: 'bg-violet-200',  deepText: 'text-violet-900',  deepBorder: 'border-violet-400',  dot: 'bg-violet-400',  barLight: 'bg-violet-100' },
-      indigo:  { light: 'bg-indigo-50',  border: 'border-indigo-300',  text: 'text-indigo-700',  deep: 'bg-indigo-200',  deepText: 'text-indigo-900',  deepBorder: 'border-indigo-400',  dot: 'bg-indigo-400',  barLight: 'bg-indigo-100' },
-      blue:    { light: 'bg-blue-50',    border: 'border-blue-300',    text: 'text-blue-700',    deep: 'bg-blue-200',    deepText: 'text-blue-900',    deepBorder: 'border-blue-400',    dot: 'bg-blue-400',    barLight: 'bg-blue-100' },
-      sky:     { light: 'bg-sky-50',     border: 'border-sky-300',     text: 'text-sky-700',     deep: 'bg-sky-200',     deepText: 'text-sky-900',     deepBorder: 'border-sky-400',     dot: 'bg-sky-400',     barLight: 'bg-sky-100' },
-      cyan:    { light: 'bg-cyan-50',    border: 'border-cyan-300',    text: 'text-cyan-700',    deep: 'bg-cyan-200',    deepText: 'text-cyan-900',    deepBorder: 'border-cyan-400',    dot: 'bg-cyan-400',    barLight: 'bg-cyan-100' },
-      teal:    { light: 'bg-teal-50',    border: 'border-teal-300',    text: 'text-teal-700',    deep: 'bg-teal-200',    deepText: 'text-teal-900',    deepBorder: 'border-teal-400',    dot: 'bg-teal-400',    barLight: 'bg-teal-100' },
-      emerald: { light: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-700', deep: 'bg-emerald-200', deepText: 'text-emerald-900', deepBorder: 'border-emerald-400', dot: 'bg-emerald-400', barLight: 'bg-emerald-100' },
-      green:   { light: 'bg-green-50',   border: 'border-green-300',   text: 'text-green-700',   deep: 'bg-green-200',   deepText: 'text-green-900',   deepBorder: 'border-green-400',   dot: 'bg-green-400',   barLight: 'bg-green-100' },
-      lime:    { light: 'bg-lime-50',    border: 'border-lime-300',    text: 'text-lime-700',    deep: 'bg-lime-200',    deepText: 'text-lime-900',    deepBorder: 'border-lime-400',    dot: 'bg-lime-400',    barLight: 'bg-lime-100' },
-      yellow:  { light: 'bg-yellow-50',  border: 'border-yellow-300',  text: 'text-yellow-700',  deep: 'bg-yellow-200',  deepText: 'text-yellow-900',  deepBorder: 'border-yellow-400',  dot: 'bg-yellow-400',  barLight: 'bg-yellow-100' },
-      amber:   { light: 'bg-amber-50',   border: 'border-amber-300',   text: 'text-amber-700',   deep: 'bg-amber-200',   deepText: 'text-amber-900',   deepBorder: 'border-amber-400',   dot: 'bg-amber-400',   barLight: 'bg-amber-100' },
-      orange:  { light: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-700',  deep: 'bg-orange-200',  deepText: 'text-orange-900',  deepBorder: 'border-orange-400',  dot: 'bg-orange-400',  barLight: 'bg-orange-100' },
-      stone:   { light: 'bg-stone-100',  border: 'border-stone-300',   text: 'text-stone-700',   deep: 'bg-stone-300',   deepText: 'text-stone-900',   deepBorder: 'border-stone-400',   dot: 'bg-stone-400',   barLight: 'bg-stone-200' },
-      zinc:    { light: 'bg-zinc-100',   border: 'border-zinc-300',    text: 'text-zinc-700',    deep: 'bg-zinc-300',    deepText: 'text-zinc-900',    deepBorder: 'border-zinc-400',    dot: 'bg-zinc-400',    barLight: 'bg-zinc-200' },
-      slate:   { light: 'bg-slate-100',  border: 'border-slate-300',   text: 'text-slate-700',   deep: 'bg-slate-300',   deepText: 'text-slate-900',   deepBorder: 'border-slate-400',   dot: 'bg-slate-400',   barLight: 'bg-slate-200' },
+      rose:    { light: 'bg-rose-50 dark:bg-rose-900/40',       border: 'border-rose-300 dark:border-rose-800',       text: 'text-rose-700 dark:text-rose-200',       deep: 'bg-rose-200 dark:bg-rose-700',       deepText: 'text-rose-900 dark:text-rose-50',       deepBorder: 'border-rose-400 dark:border-rose-600',       dot: 'bg-rose-400',    barLight: 'bg-rose-100 dark:bg-rose-900/40' },
+      red:     { light: 'bg-red-50 dark:bg-red-900/40',         border: 'border-red-300 dark:border-red-800',         text: 'text-red-700 dark:text-red-200',         deep: 'bg-red-200 dark:bg-red-700',         deepText: 'text-red-900 dark:text-red-50',         deepBorder: 'border-red-400 dark:border-red-600',         dot: 'bg-red-400',     barLight: 'bg-red-100 dark:bg-red-900/40' },
+      pink:    { light: 'bg-pink-50 dark:bg-pink-900/40',       border: 'border-pink-300 dark:border-pink-800',       text: 'text-pink-700 dark:text-pink-200',       deep: 'bg-pink-200 dark:bg-pink-700',       deepText: 'text-pink-900 dark:text-pink-50',       deepBorder: 'border-pink-400 dark:border-pink-600',       dot: 'bg-pink-400',    barLight: 'bg-pink-100 dark:bg-pink-900/40' },
+      fuchsia: { light: 'bg-fuchsia-50 dark:bg-fuchsia-900/40', border: 'border-fuchsia-300 dark:border-fuchsia-800', text: 'text-fuchsia-700 dark:text-fuchsia-200', deep: 'bg-fuchsia-200 dark:bg-fuchsia-700', deepText: 'text-fuchsia-900 dark:text-fuchsia-50', deepBorder: 'border-fuchsia-400 dark:border-fuchsia-600', dot: 'bg-fuchsia-400', barLight: 'bg-fuchsia-100 dark:bg-fuchsia-900/40' },
+      purple:  { light: 'bg-purple-50 dark:bg-purple-900/40',   border: 'border-purple-300 dark:border-purple-800',   text: 'text-purple-700 dark:text-purple-200',   deep: 'bg-purple-200 dark:bg-purple-700',   deepText: 'text-purple-900 dark:text-purple-50',   deepBorder: 'border-purple-400 dark:border-purple-600',   dot: 'bg-purple-400',  barLight: 'bg-purple-100 dark:bg-purple-900/40' },
+      violet:  { light: 'bg-violet-50 dark:bg-violet-900/40',   border: 'border-violet-300 dark:border-violet-800',   text: 'text-violet-700 dark:text-violet-200',   deep: 'bg-violet-200 dark:bg-violet-700',   deepText: 'text-violet-900 dark:text-violet-50',   deepBorder: 'border-violet-400 dark:border-violet-600',   dot: 'bg-violet-400',  barLight: 'bg-violet-100 dark:bg-violet-900/40' },
+      indigo:  { light: 'bg-indigo-50 dark:bg-indigo-900/40',   border: 'border-indigo-300 dark:border-indigo-800',   text: 'text-indigo-700 dark:text-indigo-200',   deep: 'bg-indigo-200 dark:bg-indigo-700',   deepText: 'text-indigo-900 dark:text-indigo-50',   deepBorder: 'border-indigo-400 dark:border-indigo-600',   dot: 'bg-indigo-400',  barLight: 'bg-indigo-100 dark:bg-indigo-900/40' },
+      blue:    { light: 'bg-blue-50 dark:bg-blue-900/40',       border: 'border-blue-300 dark:border-blue-800',       text: 'text-blue-700 dark:text-blue-200',       deep: 'bg-blue-200 dark:bg-blue-700',       deepText: 'text-blue-900 dark:text-blue-50',       deepBorder: 'border-blue-400 dark:border-blue-600',       dot: 'bg-blue-400',    barLight: 'bg-blue-100 dark:bg-blue-900/40' },
+      sky:     { light: 'bg-sky-50 dark:bg-sky-900/40',         border: 'border-sky-300 dark:border-sky-800',         text: 'text-sky-700 dark:text-sky-200',         deep: 'bg-sky-200 dark:bg-sky-700',         deepText: 'text-sky-900 dark:text-sky-50',         deepBorder: 'border-sky-400 dark:border-sky-600',         dot: 'bg-sky-400',     barLight: 'bg-sky-100 dark:bg-sky-900/40' },
+      cyan:    { light: 'bg-cyan-50 dark:bg-cyan-900/40',       border: 'border-cyan-300 dark:border-cyan-800',       text: 'text-cyan-700 dark:text-cyan-200',       deep: 'bg-cyan-200 dark:bg-cyan-700',       deepText: 'text-cyan-900 dark:text-cyan-50',       deepBorder: 'border-cyan-400 dark:border-cyan-600',       dot: 'bg-cyan-400',    barLight: 'bg-cyan-100 dark:bg-cyan-900/40' },
+      teal:    { light: 'bg-teal-50 dark:bg-teal-900/40',       border: 'border-teal-300 dark:border-teal-800',       text: 'text-teal-700 dark:text-teal-200',       deep: 'bg-teal-200 dark:bg-teal-700',       deepText: 'text-teal-900 dark:text-teal-50',       deepBorder: 'border-teal-400 dark:border-teal-600',       dot: 'bg-teal-400',    barLight: 'bg-teal-100 dark:bg-teal-900/40' },
+      emerald: { light: 'bg-emerald-50 dark:bg-emerald-900/40', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-200', deep: 'bg-emerald-200 dark:bg-emerald-700', deepText: 'text-emerald-900 dark:text-emerald-50', deepBorder: 'border-emerald-400 dark:border-emerald-600', dot: 'bg-emerald-400', barLight: 'bg-emerald-100 dark:bg-emerald-900/40' },
+      green:   { light: 'bg-green-50 dark:bg-green-900/40',     border: 'border-green-300 dark:border-green-800',     text: 'text-green-700 dark:text-green-200',     deep: 'bg-green-200 dark:bg-green-700',     deepText: 'text-green-900 dark:text-green-50',     deepBorder: 'border-green-400 dark:border-green-600',     dot: 'bg-green-400',   barLight: 'bg-green-100 dark:bg-green-900/40' },
+      lime:    { light: 'bg-lime-50 dark:bg-lime-900/40',       border: 'border-lime-300 dark:border-lime-800',       text: 'text-lime-700 dark:text-lime-200',       deep: 'bg-lime-200 dark:bg-lime-700',       deepText: 'text-lime-900 dark:text-lime-50',       deepBorder: 'border-lime-400 dark:border-lime-600',       dot: 'bg-lime-400',    barLight: 'bg-lime-100 dark:bg-lime-900/40' },
+      yellow:  { light: 'bg-yellow-50 dark:bg-yellow-900/40',   border: 'border-yellow-300 dark:border-yellow-800',   text: 'text-yellow-700 dark:text-yellow-200',   deep: 'bg-yellow-200 dark:bg-yellow-700',   deepText: 'text-yellow-900 dark:text-yellow-50',   deepBorder: 'border-yellow-400 dark:border-yellow-600',   dot: 'bg-yellow-400',  barLight: 'bg-yellow-100 dark:bg-yellow-900/40' },
+      amber:   { light: 'bg-amber-50 dark:bg-amber-900/40',     border: 'border-amber-300 dark:border-amber-800',     text: 'text-amber-700 dark:text-amber-200',     deep: 'bg-amber-200 dark:bg-amber-700',     deepText: 'text-amber-900 dark:text-amber-50',     deepBorder: 'border-amber-400 dark:border-amber-600',     dot: 'bg-amber-400',   barLight: 'bg-amber-100 dark:bg-amber-900/40' },
+      orange:  { light: 'bg-orange-50 dark:bg-orange-900/40',   border: 'border-orange-300 dark:border-orange-800',   text: 'text-orange-700 dark:text-orange-200',   deep: 'bg-orange-200 dark:bg-orange-700',   deepText: 'text-orange-900 dark:text-orange-50',   deepBorder: 'border-orange-400 dark:border-orange-600',   dot: 'bg-orange-400',  barLight: 'bg-orange-100 dark:bg-orange-900/40' },
+      stone:   { light: 'bg-stone-100 dark:bg-stone-800',       border: 'border-stone-300 dark:border-stone-700',     text: 'text-stone-700 dark:text-stone-200',     deep: 'bg-stone-300 dark:bg-stone-600',     deepText: 'text-stone-900 dark:text-stone-50',     deepBorder: 'border-stone-400 dark:border-stone-500',     dot: 'bg-stone-400',   barLight: 'bg-stone-200 dark:bg-stone-800' },
+      zinc:    { light: 'bg-zinc-100 dark:bg-zinc-800',         border: 'border-zinc-300 dark:border-zinc-700',       text: 'text-zinc-700 dark:text-zinc-200',       deep: 'bg-zinc-300 dark:bg-zinc-600',       deepText: 'text-zinc-900 dark:text-zinc-50',       deepBorder: 'border-zinc-400 dark:border-zinc-500',       dot: 'bg-zinc-400',    barLight: 'bg-zinc-200 dark:bg-zinc-800' },
+      slate:   { light: 'bg-slate-100 dark:bg-slate-800',       border: 'border-slate-300 dark:border-slate-700',     text: 'text-slate-700 dark:text-slate-200',     deep: 'bg-slate-300 dark:bg-slate-600',     deepText: 'text-slate-900 dark:text-slate-50',     deepBorder: 'border-slate-400 dark:border-slate-500',     dot: 'bg-slate-400',   barLight: 'bg-slate-200 dark:bg-slate-800' },
     };
     const PALETTE_KEYS = Object.keys(COLOR_PALETTE);
 
@@ -83,17 +102,7 @@
       { id: 'other',   name: '其他', color: 'slate' },
     ];
 
-    const initialEvents = [
-      { id: 1, title: '晨间瑜伽',     category: 'fitness', date: '2026-05-18', endDate: '2026-05-18', start: 7,    end: 8,    completed: true,  location: 'Z+ 健身房',     who: '' },
-      { id: 2, title: 'Hip-hop 入门', category: 'dance',   date: '2026-05-18', endDate: '2026-05-18', start: 19,   end: 20.5, completed: true,  location: 'JC 舞蹈工作室', who: 'Mira老师' },
-      { id: 3, title: '力量训练',     category: 'fitness', date: '2026-05-19', endDate: '2026-05-19', start: 18.5, end: 20,   completed: true,  location: 'Z+ 健身房',     who: '' },
-      { id: 9, title: 'K-pop 韩舞',   category: 'dance',   date: '2026-05-19', endDate: '2026-05-19', start: 12,   end: 13,   completed: false, location: '',              who: '' },
-      { id: 10,title: '中医按摩',     category: 'massage', date: '2026-05-20', endDate: '2026-05-20', start: 12,   end: 13,   completed: false, location: '万寿路',         who: '' },
-      { id: 4, title: 'Jazz 进阶',    category: 'dance',   date: '2026-05-20', endDate: '2026-05-20', start: 19,   end: 20.5, completed: false, location: 'JC 舞蹈工作室', who: 'Yuki老师' },
-      { id: 11,title: '上海团建',     category: 'fun',     date: '2026-05-22', endDate: '2026-05-24', start: 14,   end: 18,   completed: false, location: '上海',           who: '团队' },
-      { id: 6, title: '和小A 午餐',   category: 'meal',    date: '2026-05-21', endDate: '2026-05-21', start: 12,   end: 13.5, completed: false, location: '三里屯',         who: '小A' },
-    ];
-
+    /* ===== 工具 ===== */
     const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const formatTime = (h) => `${Math.floor(h)}:${String(Math.round((h%1)*60)).padStart(2,'0')}`;
     const floatToTimeStr = (f) => `${String(Math.floor(f)).padStart(2,'0')}:${String(Math.round((f%1)*60)).padStart(2,'0')}`;
@@ -115,19 +124,54 @@
       };
     };
 
+    /* ===== 持久化 ===== */
+    const loadStored = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return null;
+        return data;
+      } catch { return null; }
+    };
+
+    const loadTheme = () => {
+      try {
+        const v = localStorage.getItem(THEME_KEY);
+        if (v === 'dark') return true;
+        if (v === 'light') return false;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } catch { return false; }
+    };
+
+    /* ===================== App ===================== */
     function PlannerApp() {
-      const today = new Date(2026, 4, 20, 14, 30);
+      const today = new Date();
       const todayStr = formatDate(today);
+
       const [view, setView] = useState('week');
       const [weekOffset, setWeekOffset] = useState(0);
       const [monthOffset, setMonthOffset] = useState(0);
       const [selectedDay, setSelectedDay] = useState(today);
       const [isMobile, setIsMobile] = useState(false);
-      const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-      const [events, setEvents] = useState(initialEvents);
+
+      const [categories, setCategories] = useState(() => {
+        const s = loadStored();
+        return (s && Array.isArray(s.categories) && s.categories.length) ? s.categories : DEFAULT_CATEGORIES;
+      });
+      const [events, setEvents] = useState(() => {
+        const s = loadStored();
+        return (s && Array.isArray(s.events)) ? s.events : [];
+      });
+      const [darkMode, setDarkMode] = useState(loadTheme);
+
       const [editing, setEditing] = useState(null);
       const [managingCats, setManagingCats] = useState(false);
-      const [colorPickerFor, setColorPickerFor] = useState(null); // 当前打开调色盘的分类id
+      const [colorPickerFor, setColorPickerFor] = useState(null);
+      const [showSettings, setShowSettings] = useState(false);
+      const [confirmModal, setConfirmModal] = useState(null);
+      const [toast, setToast] = useState(null);
+      const [eventMenu, setEventMenu] = useState(null); // { id, x, y }
       const [dragInfo, setDragInfo] = useState(null);
 
       const dragStateRef = useRef(null);
@@ -136,7 +180,37 @@
       const weekStartRef = useRef(null);
       const viewRef = useRef(view);
       const selectedDayStrRef = useRef(formatDate(selectedDay));
+      const fileInputRef = useRef(null);
+      const firstSaveSkipRef = useRef(true);
+      const toastTimerRef = useRef(null);
 
+      /* —— 自动保存 —— */
+      useEffect(() => {
+        if (firstSaveSkipRef.current) { firstSaveSkipRef.current = false; return; }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            events, categories, savedAt: new Date().toISOString(), version: 1,
+          }));
+        } catch (e) {}
+      }, [events, categories]);
+
+      /* —— 深色模式 —— */
+      useEffect(() => {
+        const root = document.documentElement;
+        if (darkMode) root.classList.add('dark');
+        else root.classList.remove('dark');
+        try { localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light'); } catch {}
+      }, [darkMode]);
+
+      /* —— Toast —— */
+      const showToast = (msg, opts = {}) => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        setToast({ msg, ...opts });
+        const dur = opts.duration || 2200;
+        toastTimerRef.current = setTimeout(() => setToast(null), dur);
+      };
+
+      /* —— 屏幕宽度 —— */
       useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
         check();
@@ -181,13 +255,9 @@
           if (dragStateRef.current) return;
           if (e.touches.length !== 1) return;
           const t = e.touches[0];
-          startX = t.clientX;
-          startY = t.clientY;
-          startT = Date.now();
-          tracking = true;
-          decided = null;
+          startX = t.clientX; startY = t.clientY; startT = Date.now();
+          tracking = true; decided = null;
         };
-
         const onMove = (e) => {
           if (!tracking || decided) return;
           const t = e.touches[0];
@@ -197,18 +267,15 @@
             decided = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
           }
         };
-
         const onEnd = (e) => {
           if (!tracking) return;
           tracking = false;
           if (dragStateRef.current?.isDragging) return;
           if (decided !== 'h') return;
-
           const t = e.changedTouches[0];
           const dx = t.clientX - startX;
           const dy = t.clientY - startY;
           const dt = Date.now() - startT;
-
           if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2 && dt < 600) {
             const d = new Date(selectedDay);
             d.setDate(d.getDate() + (dx < 0 ? 1 : -1));
@@ -283,7 +350,29 @@
         const endStr = ev.endDate || ev.date;
         const d = new Date(endStr);
         d.setHours(Math.floor(ev.end), (ev.end%1)*60, 0);
-        return d < today;
+        return d < new Date();
+      };
+
+      /* —— 事项操作 —— */
+      const toggleComplete = (id) => {
+        setEvents(prev => prev.map(e => e.id === id ? { ...e, completed: !e.completed } : e));
+      };
+
+      const deleteEventById = (id) => {
+        const ev = events.find(e => e.id === id);
+        if (!ev) return;
+        setEvents(prev => prev.filter(e => e.id !== id));
+        showToast(`已删除"${ev.title}"`, {
+          duration: 5000,
+          undo: () => {
+            setEvents(prev => [...prev, ev]);
+            setToast(null);
+          },
+        });
+      };
+
+      const openEventMenu = (id, x, y) => {
+        setEventMenu({ id, x, y });
       };
 
       useEffect(() => {
@@ -348,9 +437,8 @@
             justDraggedRef.current = true;
             setTimeout(() => { justDraggedRef.current = false; }, 250);
           } else {
-            setEvents(prev => prev.map(ev =>
-              ev.id === s.id ? { ...ev, completed: !ev.completed } : ev
-            ));
+            // 轻点 → 弹出操作菜单
+            openEventMenu(s.id, e.clientX, e.clientY);
           }
           dragStateRef.current = null;
           setDragInfo(null);
@@ -364,7 +452,7 @@
           window.removeEventListener('pointerup', onUp);
           window.removeEventListener('pointercancel', onUp);
         };
-      }, []);
+      }, [events]);
 
       const handleEventPointerDown = (e, ev) => {
         e.stopPropagation();
@@ -375,7 +463,7 @@
           const onUp2 = (e2) => {
             const dist = Math.hypot(e2.clientX - startX, e2.clientY - startY);
             if (dist < 8) {
-              setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, completed: !x.completed } : x));
+              openEventMenu(ev.id, e2.clientX, e2.clientY);
             }
             window.removeEventListener('pointerup', onUp2);
           };
@@ -425,9 +513,16 @@
         setEditing(null);
       };
 
-      const deleteEvent = () => {
+      const deleteEventFromEditor = () => {
+        const ev = events.find(e => e.id === editing.id);
         setEvents(events.filter(e => e.id !== editing.id));
         setEditing(null);
+        if (ev) {
+          showToast(`已删除"${ev.title}"`, {
+            duration: 5000,
+            undo: () => { setEvents(prev => [...prev, ev]); setToast(null); },
+          });
+        }
       };
 
       const onColumnClick = (e, day) => {
@@ -451,6 +546,75 @@
         const used = new Set(categories.map(c => c.color));
         const avail = PALETTE_KEYS.find(k => !used.has(k)) || 'slate';
         setCategories(cs => [...cs, { id: newId, name: '新分类', color: avail }]);
+      };
+
+      /* —— 导出 / 导入 —— */
+      const handleExport = () => {
+        try {
+          const data = { events, categories, exportedAt: new Date().toISOString(), version: 1 };
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `planner-backup-${formatDate(new Date())}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showToast('备份文件已下载');
+        } catch (e) {
+          showToast('导出失败：' + e.message);
+        }
+      };
+
+      const handleImportClick = () => fileInputRef.current?.click();
+
+      const handleImportFile = (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (!data || !Array.isArray(data.events) || !Array.isArray(data.categories)) {
+              showToast('文件格式不正确');
+              return;
+            }
+            setConfirmModal({
+              title: '导入备份',
+              message: `将导入 ${data.events.length} 个事项 / ${data.categories.length} 个分类，并覆盖当前所有数据。是否继续？`,
+              confirmText: '导入并覆盖',
+              danger: true,
+              onConfirm: () => {
+                setEvents(data.events);
+                setCategories(data.categories);
+                setConfirmModal(null);
+                setShowSettings(false);
+                showToast('导入成功');
+              },
+            });
+          } catch (err) {
+            showToast('解析失败：' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      const handleClearAll = () => {
+        setConfirmModal({
+          title: '清空所有数据',
+          message: '此操作会删除全部事项与自定义分类，且不可撤销。建议先导出备份。',
+          confirmText: '确认清空',
+          danger: true,
+          onConfirm: () => {
+            setEvents([]);
+            setCategories(DEFAULT_CATEGORIES);
+            setConfirmModal(null);
+            setShowSettings(false);
+            showToast('已清空');
+          },
+        });
       };
 
       const computeWeekBars = (wDays) => {
@@ -484,35 +648,30 @@
       };
 
       const hours = Array.from({length: END_HOUR-START_HOUR+1}, (_,i) => START_HOUR+i);
-      const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400";
+      const inputCls = "w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-800 focus:border-rose-400";
 
       const isTimelineView = view === 'week' || view === 'day';
       const timelineDays = view === 'day' ? [selectedDay] : weekDays;
 
       const headerLabel = (() => {
-        if (view === 'day') {
-          return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日`;
-        }
+        if (view === 'day') return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日`;
         if (view === 'week') return `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月`;
         return `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
       })();
-
       const headerLabelMinWidth = view === 'day' ? '5.5rem' : '6.5rem';
 
       const goPrev = () => {
-        if (view === 'day') {
-          const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d);
-        } else if (view === 'week') setWeekOffset(o => o-1);
+        if (view === 'day') { const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d); }
+        else if (view === 'week') setWeekOffset(o => o-1);
         else setMonthOffset(o => o-1);
       };
       const goNext = () => {
-        if (view === 'day') {
-          const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d);
-        } else if (view === 'week') setWeekOffset(o => o+1);
+        if (view === 'day') { const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d); }
+        else if (view === 'week') setWeekOffset(o => o+1);
         else setMonthOffset(o => o+1);
       };
       const goToday = () => {
-        if (view === 'day') setSelectedDay(today);
+        if (view === 'day') setSelectedDay(new Date());
         else if (view === 'week') setWeekOffset(0);
         else setMonthOffset(0);
       };
@@ -521,93 +680,166 @@
         : view === 'week' ? weekOffset === 0 : monthOffset === 0;
 
       const onMonthDayTap = (d) => {
-        if (isMobile) {
-          setSelectedDay(d);
-          setView('day');
-        } else {
-          openNewEvent(d);
-        }
+        if (isMobile) { setSelectedDay(d); setView('day'); }
+        else { openNewEvent(d); }
       };
 
-      const pillBase = "h-9 flex items-center bg-slate-100 rounded-full";
+      const pillBase = "h-9 flex items-center bg-slate-100 dark:bg-slate-800 rounded-full";
 
-      // 月视图常量
       const MONTH_LANE_HEIGHT = 38;
       const MONTH_BAR_HEIGHT = 34;
       const MONTH_TOP_OFFSET = 30;
       const MONTH_LANE_CAP = 3;
 
+      /* —— 操作菜单位置计算 —— */
+      const renderEventMenu = () => {
+        if (!eventMenu) return null;
+        const ev = events.find(x => x.id === eventMenu.id);
+        if (!ev) return null;
+        const MENU_W = 180;
+        const MENU_H = 188;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let left = eventMenu.x - MENU_W / 2;
+        left = Math.max(8, Math.min(left, vw - MENU_W - 8));
+        let top;
+        if (eventMenu.y + MENU_H + 16 > vh) top = Math.max(8, eventMenu.y - MENU_H - 8);
+        else top = eventMenu.y + 8;
+
+        const cat = getCat(ev.category);
+        const style = getStyle(ev.category);
+
+        return (
+          <>
+            <div className="fixed inset-0 z-[55]"
+              onClick={() => setEventMenu(null)}
+              onPointerDown={() => setEventMenu(null)} />
+            <div
+              className="fixed z-[56] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+              style={{ left, top, width: MENU_W }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`}></div>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{cat.name}</span>
+                </div>
+                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{ev.title}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  {ev.date}{(ev.endDate && ev.endDate !== ev.date) ? ` → ${ev.endDate}` : ''} · {formatTime(ev.start)}-{formatTime(ev.end)}
+                </div>
+              </div>
+              <button
+                onClick={() => { toggleComplete(ev.id); setEventMenu(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 active:bg-slate-200 dark:active:bg-slate-700 transition"
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  ev.completed ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                               : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300'
+                }`}>
+                  {ev.completed ? <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.25}/> : <Check className="w-4 h-4" strokeWidth={3}/>}
+                </div>
+                <span>{ev.completed ? '取消完成' : '标记完成'}</span>
+              </button>
+              <button
+                onClick={() => { setEditing({ ...ev }); setEventMenu(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 active:bg-slate-200 dark:active:bg-slate-700 transition"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300">
+                  <Edit2 className="w-3.5 h-3.5" strokeWidth={2.25}/>
+                </div>
+                <span>编辑</span>
+              </button>
+              <button
+                onClick={() => { deleteEventById(ev.id); setEventMenu(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 active:bg-rose-100 dark:active:bg-rose-900/50 transition"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300">
+                  <Trash2 className="w-3.5 h-3.5" strokeWidth={2.25}/>
+                </div>
+                <span>删除</span>
+              </button>
+            </div>
+          </>
+        );
+      };
+
       return (
-        <div className="w-full h-screen bg-slate-50 flex flex-col font-sans"
+        <div className="w-full h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100"
           style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
                    userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
 
           {/* ===== 顶栏 ===== */}
-          <div className="bg-white border-b border-slate-200 px-3 py-2.5 flex items-center justify-between shrink-0 gap-2">
+          <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-2.5 flex items-center justify-between shrink-0 gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className={pillBase}>
                 <button onClick={goPrev}
-                  className="h-9 w-8 flex items-center justify-center rounded-l-full hover:bg-slate-200/70 transition">
-                  <ChevronLeft className="w-4 h-4 text-slate-600" strokeWidth={2.25}/>
+                  className="h-9 w-8 flex items-center justify-center rounded-l-full hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition">
+                  <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" strokeWidth={2.25}/>
                 </button>
                 <div
-                  className="text-sm font-semibold text-slate-800 text-center px-1 select-none"
+                  className="text-sm font-semibold text-slate-800 dark:text-slate-100 text-center px-1 select-none"
                   style={{ minWidth: headerLabelMinWidth }}
                 >
                   {headerLabel}
                 </div>
                 <button onClick={goNext}
-                  className="h-9 w-8 flex items-center justify-center rounded-r-full hover:bg-slate-200/70 transition">
-                  <ChevronRight className="w-4 h-4 text-slate-600" strokeWidth={2.25}/>
+                  className="h-9 w-8 flex items-center justify-center rounded-r-full hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition">
+                  <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" strokeWidth={2.25}/>
                 </button>
               </div>
 
               {!offsetIsZero && (
                 <button
                   onClick={goToday}
-                  className="h-9 px-3.5 rounded-full bg-sky-50 text-sky-600 hover:bg-sky-100 transition text-xs font-medium shrink-0"
+                  className="h-9 px-3.5 rounded-full bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition text-xs font-medium shrink-0"
                 >
                   today
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className={`${pillBase} p-0.5`}>
                 {isMobile ? (
                   <>
                     <button onClick={() => setView('month')}
                       className={`px-3 h-8 text-xs font-medium rounded-full transition ${
-                        view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
                       }`}>月</button>
                     <button onClick={() => setView('day')}
                       className={`px-3 h-8 text-xs font-medium rounded-full transition ${
-                        view === 'day' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        view === 'day' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
                       }`}>日</button>
                   </>
                 ) : (
                   <>
                     <button onClick={() => setView('week')}
                       className={`px-3 h-8 text-xs font-medium rounded-full transition ${
-                        view === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        view === 'week' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
                       }`}>周</button>
                     <button onClick={() => setView('month')}
                       className={`px-3 h-8 text-xs font-medium rounded-full transition ${
-                        view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                        view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
                       }`}>月</button>
                   </>
                 )}
               </div>
 
               {view === 'week' && (
-                <div className="hidden md:flex items-center gap-1.5 h-9 text-xs bg-emerald-50 px-3 rounded-full border border-emerald-200">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-bold text-emerald-600">{weekEventsCount.done}</span>
-                  <span className="text-emerald-400">/ {weekEventsCount.total}</span>
+                <div className="hidden md:flex items-center gap-1.5 h-9 text-xs bg-emerald-50 dark:bg-emerald-900/40 px-3 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                  <span className="font-bold text-emerald-600 dark:text-emerald-300">{weekEventsCount.done}</span>
+                  <span className="text-emerald-400 dark:text-emerald-500">/ {weekEventsCount.total}</span>
                 </div>
               )}
 
-              <button onClick={() => openNewEvent(view === 'day' ? selectedDay : today, 19)}
+              <button onClick={() => setShowSettings(true)}
+                className="h-9 w-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+                <Settings className="w-4 h-4" strokeWidth={2}/>
+              </button>
+
+              <button onClick={() => openNewEvent(view === 'day' ? selectedDay : new Date(), 19)}
                 className="h-9 px-3 flex items-center gap-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-sm font-medium transition shadow-sm">
                 <Plus className="w-4 h-4" strokeWidth={3} />
                 <span className="hidden sm:inline">新建</span>
@@ -615,19 +847,20 @@
             </div>
           </div>
 
+          {/* ===== 时间轴视图 ===== */}
           {isTimelineView && (
             <>
-              <div className="bg-white border-b border-slate-200 flex shrink-0">
+              <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex shrink-0">
                 <div style={{width: TIME_COL_WIDTH}} className="shrink-0"></div>
                 {timelineDays.map((d, i) => {
                   const isToday = formatDate(d) === todayStr;
                   const wd = (d.getDay() || 7) - 1;
                   return (
-                    <div key={i} className="flex-1 py-2 text-center border-l border-slate-100 min-w-0">
-                      <div className="text-xs text-slate-500">周{dayNames[wd]}</div>
+                    <div key={i} className="flex-1 py-2 text-center border-l border-slate-100 dark:border-slate-800 min-w-0">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">周{dayNames[wd]}</div>
                       <div className="mt-1 flex justify-center">
                         <div className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
-                          isToday ? 'text-white bg-rose-500' : 'text-slate-800'
+                          isToday ? 'text-white bg-rose-500' : 'text-slate-800 dark:text-slate-100'
                         }`}>{d.getDate()}</div>
                       </div>
                     </div>
@@ -635,11 +868,11 @@
                 })}
               </div>
 
-              <div ref={gridRef} className="flex-1 overflow-y-auto">
+              <div ref={gridRef} className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
                 <div className="flex relative">
                   <div style={{width: TIME_COL_WIDTH}} className="shrink-0">
                     {hours.map(h => (
-                      <div key={h} style={{height:HOUR_HEIGHT}} className="text-xs text-slate-400 text-right pr-2 -translate-y-2">
+                      <div key={h} style={{height:HOUR_HEIGHT}} className="text-xs text-slate-400 dark:text-slate-500 text-right pr-2 -translate-y-2">
                         {h}:00
                       </div>
                     ))}
@@ -654,10 +887,10 @@
                         key={dayIdx}
                         data-empty="true"
                         onClick={(e) => onColumnClick(e, d)}
-                        className={`flex-1 border-l border-slate-100 relative cursor-pointer min-w-0 ${isToday ? 'bg-rose-50/30' : ''}`}
+                        className={`flex-1 border-l border-slate-100 dark:border-slate-800 relative cursor-pointer min-w-0 ${isToday ? 'bg-rose-50/30 dark:bg-rose-900/10' : ''}`}
                       >
                         {hours.map(h => (
-                          <div key={h} data-empty="true" style={{height:HOUR_HEIGHT}} className="border-b border-slate-100"></div>
+                          <div key={h} data-empty="true" style={{height:HOUR_HEIGHT}} className="border-b border-slate-100 dark:border-slate-800"></div>
                         ))}
 
                         {displayEvents.map(ev => {
@@ -671,14 +904,14 @@
 
                           let cardCls = '', circleCls = '';
                           if (missed) {
-                            cardCls = 'bg-slate-100 text-slate-400 border border-slate-200';
-                            circleCls = 'border-2 border-slate-300';
+                            cardCls = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700';
+                            circleCls = 'border-2 border-slate-300 dark:border-slate-600';
                           } else if (ev.completed) {
                             cardCls = `${style.deep} ${style.deepText} border ${style.deepBorder}`;
                             circleCls = `${style.dot} border-2 ${style.deepBorder}`;
                           } else {
                             cardCls = `${style.light} ${style.text} border ${style.border}`;
-                            circleCls = `border-2 ${style.border} bg-white/60`;
+                            circleCls = `border-2 ${style.border} bg-white/60 dark:bg-slate-900/40`;
                           }
 
                           const roundCls = seg.isMulti
@@ -741,7 +974,8 @@
                         })}
 
                         {isToday && (() => {
-                          const nowHour = today.getHours() + today.getMinutes()/60;
+                          const now = new Date();
+                          const nowHour = now.getHours() + now.getMinutes()/60;
                           if (nowHour >= START_HOUR && nowHour <= END_HOUR + 1) {
                             const top = (nowHour-START_HOUR)*HOUR_HEIGHT;
                             return (
@@ -762,14 +996,15 @@
             </>
           )}
 
+          {/* ===== 月视图 ===== */}
           {view === 'month' && (
             <>
-              <div className="bg-white border-b border-slate-200 grid grid-cols-7 shrink-0">
+              <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 grid grid-cols-7 shrink-0">
                 {monthDayLabels.map((l, i) => (
-                  <div key={i} className="py-2 text-center text-xs text-slate-500 border-l border-slate-100 first:border-l-0">{l}</div>
+                  <div key={i} className="py-2 text-center text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 first:border-l-0">{l}</div>
                 ))}
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
                 <div className="flex flex-col h-full">
                   {monthInfo.weeks.map((wDays, wIdx) => {
                     const bars = computeWeekBars(wDays);
@@ -779,7 +1014,7 @@
                     });
 
                     return (
-                      <div key={wIdx} className="flex-1 grid grid-cols-7 relative border-b border-slate-100 last:border-b-0 min-h-0">
+                      <div key={wIdx} className="flex-1 grid grid-cols-7 relative border-b border-slate-100 dark:border-slate-800 last:border-b-0 min-h-0">
                         {wDays.map((d, di) => {
                           const dStr = formatDate(d);
                           const isToday = dStr === todayStr;
@@ -790,15 +1025,15 @@
                               onClick={(e) => {
                                 if (e.target === e.currentTarget || e.target.dataset.empty) onMonthDayTap(d);
                               }}
-                              className={`relative border-l border-slate-100 first:border-l-0 cursor-pointer hover:bg-slate-50 transition ${
-                                !inMonth ? 'bg-slate-50/50' : ''
-                              } ${isToday ? 'bg-rose-50/40' : ''}`}
+                              className={`relative border-l border-slate-100 dark:border-slate-800 first:border-l-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${
+                                !inMonth ? 'bg-slate-50/50 dark:bg-slate-950/50' : ''
+                              } ${isToday ? 'bg-rose-50/40 dark:bg-rose-900/10' : ''}`}
                               data-empty="true"
                             >
                               <div className="flex justify-end p-1.5" data-empty="true">
                                 <div className={`text-xs w-6 h-6 flex items-center justify-center rounded-full font-medium ${
                                   isToday ? 'bg-rose-500 text-white' :
-                                  inMonth ? 'text-slate-700' : 'text-slate-400'
+                                  inMonth ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-600'
                                 }`}>{d.getDate()}</div>
                               </div>
                               <div data-empty="true" style={{ height: MONTH_LANE_CAP * MONTH_LANE_HEIGHT + (overflow[di] > 0 ? 18 : 0) }}></div>
@@ -806,12 +1041,10 @@
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (isMobile) {
-                                      setSelectedDay(d);
-                                      setView('day');
-                                    } else {
+                                    if (isMobile) { setSelectedDay(d); setView('day'); }
+                                    else {
                                       const w = new Date(wDays[0]);
-                                      const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                      const today0 = new Date(); today0.setHours(0,0,0,0);
                                       const baseMonday = new Date(today0);
                                       const bd = baseMonday.getDay() || 7;
                                       baseMonday.setDate(baseMonday.getDate() - bd + 1);
@@ -820,7 +1053,7 @@
                                       setView('week');
                                     }
                                   }}
-                                  className="absolute left-1 right-1 text-[11px] text-slate-500 hover:text-rose-600 text-left px-1.5 py-0.5"
+                                  className="absolute left-1 right-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-left px-1.5 py-0.5"
                                   style={{ top: MONTH_TOP_OFFSET + MONTH_LANE_CAP * MONTH_LANE_HEIGHT }}
                                 >
                                   +{overflow[di]} 更多
@@ -838,7 +1071,7 @@
                           const isSingleDay = bar.startCol === bar.endCol;
 
                           let cls = '';
-                          if (missed) cls = 'bg-slate-200 text-slate-400 line-through';
+                          if (missed) cls = 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 line-through';
                           else if (bar.ev.completed) cls = `${style.deep} ${style.deepText}`;
                           else cls = `${style.barLight} ${style.text}`;
 
@@ -848,11 +1081,10 @@
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (isMobile) {
-                                  const targetDate = new Date(bar.ev.date);
-                                  setSelectedDay(targetDate);
-                                  setView('day');
+                                  // 移动端：弹出操作菜单
+                                  openEventMenu(bar.ev.id, e.clientX, e.clientY);
                                 } else {
-                                  setEditing({ ...bar.ev });
+                                  openEventMenu(bar.ev.id, e.clientX, e.clientY);
                                 }
                               }}
                               className={`absolute rounded-md text-[11px] font-medium px-1.5 py-1 text-left leading-tight overflow-hidden ${cls}`}
@@ -884,7 +1116,8 @@
             </>
           )}
 
-          <div className="bg-white border-t border-slate-200 px-3 py-2 flex items-center gap-3 text-xs text-slate-600 shrink-0 flex-wrap">
+          {/* ===== 底部分类图例 ===== */}
+          <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center gap-3 text-xs text-slate-600 dark:text-slate-300 shrink-0 flex-wrap">
             {categories.map(c => (
               <div key={c.id} className="flex items-center gap-1.5">
                 <div className={`w-2.5 h-2.5 rounded-full ${COLOR_PALETTE[c.color].dot}`}></div>
@@ -893,22 +1126,26 @@
             ))}
           </div>
 
+          {/* ===== 事项操作菜单 ===== */}
+          {renderEventMenu()}
+
+          {/* ===== 编辑事项弹窗 ===== */}
           {editing && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
               onClick={() => setEditing(null)}>
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                     {editing.id == null ? '新建事项' : '编辑事项'}
                   </h2>
-                  <button onClick={() => setEditing(null)} className="p-1 hover:bg-slate-100 rounded-md">
-                    <X className="w-5 h-5 text-slate-500" />
+                  <button onClick={() => setEditing(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   </button>
                 </div>
 
                 <div className="px-5 pb-4 space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 block">事项名称</label>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">事项名称</label>
                     <input autoFocus className={inputCls}
                       value={editing.title}
                       onChange={e => setEditing({...editing, title: e.target.value})}
@@ -917,9 +1154,9 @@
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-slate-500">分类</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400">分类</label>
                       <button onClick={() => setManagingCats(true)}
-                        className="text-xs text-rose-500 hover:text-rose-700">+ 管理分类</button>
+                        className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300">+ 管理分类</button>
                     </div>
                     <div className="grid grid-cols-3 gap-1.5">
                       {categories.map(c => {
@@ -929,8 +1166,8 @@
                           <button key={c.id}
                             onClick={() => setEditing({...editing, category: c.id})}
                             className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-sm transition ${
-                              selected ? `${style.light} ${style.text} ${style.border} ring-2 ring-offset-1 ring-rose-300 font-medium`
-                                       : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                              selected ? `${style.light} ${style.text} ${style.border} ring-2 ring-offset-1 dark:ring-offset-slate-900 ring-rose-300 font-medium`
+                                       : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
                             }`}>
                             <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`}></div>
                             <span className="truncate">{c.name}</span>
@@ -942,7 +1179,7 @@
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-medium text-slate-500 mb-1 block">开始日期</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">开始日期</label>
                       <input type="date" className={inputCls}
                         value={editing.date}
                         onChange={e => {
@@ -953,7 +1190,7 @@
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-slate-500 mb-1 block">结束日期</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">结束日期</label>
                       <input type="date" className={inputCls}
                         min={editing.date}
                         value={editing.endDate}
@@ -964,14 +1201,14 @@
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-medium text-slate-500 mb-1 block">开始时间</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">开始时间</label>
                       <input type="time" className={inputCls}
                         value={floatToTimeStr(editing.start)}
                         onChange={e => setEditing({...editing, start: timeStrToFloat(e.target.value)})}
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-slate-500 mb-1 block">结束时间</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">结束时间</label>
                       <input type="time" className={inputCls}
                         value={floatToTimeStr(editing.end)}
                         onChange={e => setEditing({...editing, end: timeStrToFloat(e.target.value)})}
@@ -980,13 +1217,13 @@
                   </div>
 
                   {editing.endDate !== editing.date && (
-                    <div className="text-xs text-slate-500 bg-slate-50 rounded-md px-3 py-1.5 border border-slate-200">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-md px-3 py-1.5 border border-slate-200 dark:border-slate-700">
                       跨天事项：{editing.date} {floatToTimeStr(editing.start)} → {editing.endDate} {floatToTimeStr(editing.end)}
                     </div>
                   )}
 
                   <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} />
                       <span>地点</span>
                     </label>
@@ -997,7 +1234,7 @@
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5" strokeWidth={1.75} />
                       <span>和谁</span>
                     </label>
@@ -1008,17 +1245,17 @@
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between px-5 py-3 bg-slate-50 rounded-b-2xl">
+                <div className="flex items-center justify-between px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl">
                   {editing.id != null ? (
-                    <button onClick={deleteEvent}
-                      className="flex items-center gap-1 text-rose-500 hover:text-rose-700 text-sm px-2 py-1.5 rounded-md hover:bg-rose-50">
+                    <button onClick={deleteEventFromEditor}
+                      className="flex items-center gap-1 text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 text-sm px-2 py-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-900/30">
                       <Trash2 className="w-4 h-4" />
                       <span>删除</span>
                     </button>
                   ) : <div></div>}
                   <div className="flex items-center gap-2">
                     <button onClick={() => setEditing(null)}
-                      className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                      className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">取消</button>
                     <button onClick={saveEvent}
                       className="px-4 py-2 text-sm bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium shadow-sm">保存</button>
                   </div>
@@ -1027,14 +1264,15 @@
             </div>
           )}
 
+          {/* ===== 管理分类弹窗 ===== */}
           {managingCats && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4"
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
               onClick={() => { setManagingCats(false); setColorPickerFor(null); }}>
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                  <h2 className="text-lg font-semibold text-slate-800">管理分类</h2>
-                  <button onClick={() => { setManagingCats(false); setColorPickerFor(null); }} className="p-1 hover:bg-slate-100 rounded-md">
-                    <X className="w-5 h-5 text-slate-500" />
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">管理分类</h2>
+                  <button onClick={() => { setManagingCats(false); setColorPickerFor(null); }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   </button>
                 </div>
                 <div className="px-5 py-3 space-y-2 max-h-[60vh] overflow-y-auto">
@@ -1046,25 +1284,25 @@
                         <div className={`flex items-center gap-2 p-2 rounded-lg border ${style.border} ${style.light}`}>
                           <button
                             onClick={() => setColorPickerFor(pickerOpen ? null : c.id)}
-                            className={`w-7 h-7 rounded-full ${style.dot} border-2 border-white shadow shrink-0 transition ${
-                              pickerOpen ? 'ring-2 ring-offset-1 ring-slate-400' : ''
+                            className={`w-7 h-7 rounded-full ${style.dot} border-2 border-white dark:border-slate-900 shadow shrink-0 transition ${
+                              pickerOpen ? 'ring-2 ring-offset-1 dark:ring-offset-slate-900 ring-slate-400' : ''
                             }`}
                             title="点击更换颜色"
                           />
                           <input
                             value={c.name}
                             onChange={e => updateCat(c.id, { name: e.target.value })}
-                            className="flex-1 min-w-0 bg-white/60 px-2 py-1 rounded border border-transparent focus:border-slate-300 focus:outline-none text-sm"
+                            className="flex-1 min-w-0 bg-white/60 dark:bg-slate-900/40 px-2 py-1 rounded border border-transparent focus:border-slate-300 dark:focus:border-slate-600 focus:outline-none text-sm text-slate-900 dark:text-slate-100"
                           />
                           <button onClick={() => deleteCat(c.id)}
                             disabled={categories.length <= 1}
-                            className="p-1.5 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400">
+                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
 
                         {pickerOpen && (
-                          <div className="mt-1.5 p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                          <div className="mt-1.5 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
                             <div className="grid grid-cols-7 gap-1.5">
                               {PALETTE_KEYS.map(k => {
                                 const sw = COLOR_PALETTE[k];
@@ -1074,7 +1312,7 @@
                                     key={k}
                                     onClick={() => { updateCat(c.id, { color: k }); setColorPickerFor(null); }}
                                     className={`w-7 h-7 rounded-full ${sw.dot} flex items-center justify-center transition hover:scale-110 ${
-                                      isSelected ? 'ring-2 ring-offset-2 ring-slate-700' : ''
+                                      isSelected ? 'ring-2 ring-offset-2 dark:ring-offset-slate-800 ring-slate-700 dark:ring-slate-300' : ''
                                     }`}
                                     title={k}
                                   >
@@ -1089,16 +1327,167 @@
                     );
                   })}
                 </div>
-                <div className="px-5 py-3 bg-slate-50 rounded-b-2xl flex items-center justify-between">
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-between">
                   <button onClick={addCat}
-                    className="flex items-center gap-1 text-sm text-rose-500 hover:text-rose-700 font-medium">
+                    className="flex items-center gap-1 text-sm text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium">
                     <Plus className="w-4 h-4" strokeWidth={2.5} />
                     <span>添加分类</span>
                   </button>
                   <button onClick={() => { setManagingCats(false); setColorPickerFor(null); }}
-                    className="px-4 py-1.5 text-sm bg-slate-800 hover:bg-slate-900 text-white rounded-lg">完成</button>
+                    className="px-4 py-1.5 text-sm bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900 text-white rounded-lg">完成</button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ===== 设置弹窗 ===== */}
+          {showSettings && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              onClick={() => setShowSettings(false)}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">设置</h2>
+                  <button onClick={() => setShowSettings(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  </button>
+                </div>
+
+                <div className="px-5 py-3 space-y-4">
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">外观</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setDarkMode(false)}
+                        className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition ${
+                          !darkMode
+                            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-200 ring-2 ring-amber-200 dark:ring-amber-800'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                        <Sun className="w-4 h-4" />
+                        <span>浅色</span>
+                      </button>
+                      <button
+                        onClick={() => setDarkMode(true)}
+                        className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition ${
+                          darkMode
+                            ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-200 ring-2 ring-indigo-200 dark:ring-indigo-800'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                        <Moon className="w-4 h-4" />
+                        <span>深色</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">数据备份</div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={handleExport}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                          <Download className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800 dark:text-slate-100">导出备份</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">下载 JSON 文件到本地</div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={handleImportClick}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                        <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800 dark:text-slate-100">导入备份</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">从 JSON 文件恢复数据</div>
+                        </div>
+                      </button>
+
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="application/json,.json"
+                        onChange={handleImportFile}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">分类</div>
+                    <button
+                      onClick={() => { setShowSettings(false); setManagingCats(true); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                      <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300 flex items-center justify-center shrink-0">
+                        <Tag className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-100">管理分类</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{categories.length} 个分类</div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">危险操作</div>
+                    <button
+                      onClick={handleClearAll}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-900/20 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition text-left">
+                      <div className="w-9 h-9 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-rose-700 dark:text-rose-300">清空所有数据</div>
+                        <div className="text-xs text-rose-500/80 dark:text-rose-400/70 truncate">建议先导出备份</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="px-5 py-3 text-center text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
+                  共 {events.length} 个事项 · 数据自动保存到本设备浏览器
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 通用确认弹窗 ===== */}
+          {confirmModal && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4"
+              onClick={() => setConfirmModal(null)}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                <div className="px-5 pt-5 pb-3">
+                  <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-2">{confirmModal.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{confirmModal.message}</p>
+                </div>
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-end gap-2">
+                  <button onClick={() => setConfirmModal(null)}
+                    className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">取消</button>
+                  <button onClick={confirmModal.onConfirm}
+                    className={`px-4 py-2 text-sm rounded-lg font-medium shadow-sm text-white ${
+                      confirmModal.danger ? 'bg-rose-500 hover:bg-rose-600' : 'bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900'
+                    }`}>{confirmModal.confirmText || '确认'}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== Toast（含撤销） ===== */}
+          {toast && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-1 px-1 py-1 pl-4 rounded-full shadow-2xl text-sm bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 max-w-[90vw]">
+              <span className="truncate pr-1">{toast.msg}</span>
+              {toast.undo && (
+                <button
+                  onClick={toast.undo}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-medium text-xs transition flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" strokeWidth={2.5}/>
+                  <span>撤销</span>
+                </button>
+              )}
             </div>
           )}
         </div>
