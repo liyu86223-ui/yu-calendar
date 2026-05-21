@@ -244,6 +244,7 @@
       const [toast, setToast] = useState(null);
       const [eventMenu, setEventMenu] = useState(null);
       const [dragInfo, setDragInfo] = useState(null);
+      const [clipboardEvent, setClipboardEvent] = useState(null);
 
       /* ===== 同步状态 ===== */
       const [syncToken, setSyncToken] = useState(() => {
@@ -252,7 +253,7 @@
       const [syncGistId, setSyncGistId] = useState(() => {
         try { return localStorage.getItem(SYNC_GIST_ID_KEY) || ''; } catch { return ''; }
       });
-      const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | synced | pending | error | disabled
+      const [syncStatus, setSyncStatus] = useState('idle');
       const [syncError, setSyncError] = useState(null);
       const [lastSyncAt, setLastSyncAt] = useState(null);
       const [setupOpen, setSetupOpen] = useState(false);
@@ -271,7 +272,6 @@
       const firstSaveSkipRef = useRef(true);
       const toastTimerRef = useRef(null);
 
-      // 同步相关 refs
       const pushTimerRef = useRef(null);
       const skipNextPushRef = useRef(false);
       const initialSyncDoneRef = useRef(false);
@@ -288,6 +288,14 @@
         const dur = opts.duration || 2200;
         toastTimerRef.current = setTimeout(() => setToast(null), dur);
       }, []);
+
+      /* ===== ESC 取消粘贴模式 ===== */
+      useEffect(() => {
+        if (!clipboardEvent) return;
+        const onKey = (e) => { if (e.key === 'Escape') setClipboardEvent(null); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [clipboardEvent]);
 
       /* ===== 同步：推送 ===== */
       const doPush = useCallback(async () => {
@@ -331,7 +339,7 @@
         pushTimerRef.current = setTimeout(() => { doPush(); }, PUSH_DEBOUNCE_MS);
       }, [events, categories, doPush]);
 
-      /* ===== 同步：拉取 + 首次冲突处理 ===== */
+      /* ===== 同步：拉取 ===== */
       const doPull = useCallback(async (opts = {}) => {
         const token = syncTokenRef.current;
         const gistId = syncGistIdRef.current;
@@ -344,14 +352,12 @@
           const localTime = local?.savedAt ? new Date(local.savedAt).getTime() : 0;
 
           if (remoteTime > localTime) {
-            // 应用远程数据
             skipNextPushRef.current = true;
             const remoteCats = Array.isArray(remote.categories) && remote.categories.length
               ? remote.categories : DEFAULT_CATEGORIES;
             const remoteEvents = Array.isArray(remote.events) ? remote.events : [];
             setCategories(remoteCats);
             setEvents(remoteEvents);
-            // 直接写入 localStorage，确保 savedAt 一致
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify({
                 events: remoteEvents, categories: remoteCats,
@@ -393,7 +399,6 @@
             try { return localStorage.getItem(SYNC_SKIPPED_KEY) === '1'; } catch { return false; }
           })();
           if (!skipped) {
-            // 延迟一点弹出，避免和初始渲染抢
             setTimeout(() => setSetupOpen(true), 400);
           } else {
             setSyncStatus('disabled');
@@ -571,6 +576,30 @@
 
       const openEventMenu = (id, x, y) => {
         setEventMenu({ id, x, y });
+      };
+
+      /* ===== 粘贴函数 ===== */
+      const pasteClipboard = (dateStr, startHour = null) => {
+        if (!clipboardEvent) return;
+        const src = clipboardEvent;
+        const dur = src.end - src.start;
+        let newStart = startHour != null ? startHour : src.start;
+        let newEnd = newStart + dur;
+        if (newEnd > END_HOUR + 1) {
+          newEnd = END_HOUR + 1;
+          newStart = Math.max(START_HOUR, newEnd - dur);
+        }
+        const newId = Math.max(0, ...events.map(e => e.id)) + 1;
+        setEvents(prev => [...prev, {
+          ...src,
+          id: newId,
+          date: dateStr,
+          endDate: dateStr,
+          start: newStart,
+          end: newEnd,
+          completed: false,
+        }]);
+        showToast(`已粘贴"${src.title}"到 ${dateStr}`);
       };
 
       useEffect(() => {
@@ -836,10 +865,8 @@
         try {
           let finalGistId = gistId;
           if (gistId) {
-            // 验证可访问
             await gistFetch(token, gistId);
           } else {
-            // 创建新 gist
             const stored = loadStored() || { events, categories, savedAt: new Date().toISOString(), version: 1 };
             const newGist = await gistCreate(token, stored);
             finalGistId = newGist.id;
@@ -856,7 +883,6 @@
           setSetupOpen(false);
           setSetupTokenInput('');
           setSetupGistIdInput('');
-          // 拉一次 + 合并
           await doPull({ notify: true });
         } catch (err) {
           setSetupError(err.message);
@@ -986,7 +1012,6 @@
       const MONTH_TOP_OFFSET = 30;
       const MONTH_LANE_CAP = 3;
 
-      /* ===== 同步状态 UI ===== */
       const syncDotInfo = (() => {
         if (!syncToken || !syncGistId) {
           return { color: 'bg-slate-300 dark:bg-slate-600', label: '未启用云同步', animate: false };
@@ -1003,7 +1028,7 @@
         const ev = events.find(x => x.id === eventMenu.id);
         if (!ev) return null;
         const MENU_W = 180;
-        const MENU_H = 188;
+        const MENU_H = 240;
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         let left = eventMenu.x - MENU_W / 2;
@@ -1055,6 +1080,19 @@
                   <Edit2 className="w-3.5 h-3.5" strokeWidth={2.25}/>
                 </div>
                 <span>编辑</span>
+              </button>
+              <button
+                onClick={() => {
+                  setClipboardEvent({ ...ev });
+                  setEventMenu(null);
+                  showToast(`已复制"${ev.title}"`);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 active:bg-slate-200 dark:active:bg-slate-700 transition"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300">
+                  <Copy className="w-3.5 h-3.5" strokeWidth={2.25}/>
+                </div>
+                <span>复制</span>
               </button>
               <button
                 onClick={() => { deleteEventById(ev.id); setEventMenu(null); }}
@@ -1162,6 +1200,23 @@
             </div>
           </div>
 
+          {/* ===== 粘贴模式提示条 ===== */}
+          {clipboardEvent && (
+            <div className="bg-sky-50 dark:bg-sky-900/30 border-b border-sky-200 dark:border-sky-800 px-3 py-1.5 flex items-center gap-2 text-xs shrink-0">
+              <Copy className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" strokeWidth={2.25}/>
+              <span className="text-sky-700 dark:text-sky-200 truncate flex-1">
+                已复制 <strong>"{clipboardEvent.title}"</strong> · 点击空白时段或日期粘贴
+                <span className="hidden sm:inline opacity-60"> · 按 Esc 取消</span>
+              </span>
+              <button
+                onClick={() => setClipboardEvent(null)}
+                className="shrink-0 px-2 py-0.5 rounded-md hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-200 font-medium"
+              >
+                取消
+              </button>
+            </div>
+          )}
+
           {/* ===== 时间轴视图 ===== */}
           {isTimelineView && (
             <>
@@ -1200,7 +1255,19 @@
                     return (
                       <div
                         key={dayIdx}
-                        className="flex-1 border-l border-slate-100 dark:border-slate-800 relative min-w-0"
+                        className={`flex-1 border-l border-slate-100 dark:border-slate-800 relative min-w-0 ${clipboardEvent ? 'cursor-copy' : ''}`}
+                        onClick={(e) => {
+                          if (!clipboardEvent) return;
+                          if (e.target.closest('[data-event-card]')) return;
+                          const grid = gridRef.current;
+                          if (!grid) return;
+                          const rect = grid.getBoundingClientRect();
+                          const y = e.clientY - rect.top + grid.scrollTop;
+                          let hour = START_HOUR + y / HOUR_HEIGHT;
+                          hour = Math.round(hour * 4) / 4;
+                          hour = Math.max(START_HOUR, Math.min(END_HOUR, hour));
+                          pasteClipboard(dStr, hour);
+                        }}
                       >
                         {hours.map(h => (
                           <div key={h} style={{height:HOUR_HEIGHT}} className="border-b border-slate-100 dark:border-slate-800"></div>
@@ -1237,6 +1304,7 @@
                           return (
                             <div
                               key={`${ev.id}-${dStr}`}
+                              data-event-card="true"
                               onPointerDown={(e) => handleEventPointerDown(e, ev)}
                               onDoubleClick={(e) => { e.stopPropagation(); setEditing({ ...ev }); }}
                               style={{ top, height: height-3, touchAction: 'none' }}
@@ -1336,9 +1404,15 @@
                             <div
                               key={di}
                               onClick={(e) => {
-                                if (e.target === e.currentTarget || e.target.dataset.empty) onMonthDayTap(d);
+                                if (e.target === e.currentTarget || e.target.dataset.empty) {
+                                  if (clipboardEvent) {
+                                    pasteClipboard(formatDate(d));
+                                  } else {
+                                    onMonthDayTap(d);
+                                  }
+                                }
                               }}
-                              className={`relative border-l border-slate-100 dark:border-slate-800 first:border-l-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${
+                              className={`relative border-l border-slate-100 dark:border-slate-800 first:border-l-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${clipboardEvent ? 'cursor-copy' : ''} ${
                                 !inMonth ? 'bg-slate-50/50 dark:bg-slate-950/50' : ''
                               }`}
                               data-empty="true"
@@ -1526,6 +1600,41 @@
                     </div>
                   </div>
 
+                  {editing.endDate === editing.date && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mr-0.5">快捷时长</span>
+                      {[
+                        { label: '30 分', mins: 30 },
+                        { label: '1 小时', mins: 60 },
+                        { label: '1.5 小时', mins: 90 },
+                        { label: '2 小时', mins: 120 },
+                        { label: '3 小时', mins: 180 },
+                      ].map(p => {
+                        const curMins = Math.round((editing.end - editing.start) * 60);
+                        const isCurrent = curMins === p.mins;
+                        return (
+                          <button
+                            type="button"
+                            key={p.mins}
+                            onClick={() => {
+                              const dur = p.mins / 60;
+                              let newEnd = editing.start + dur;
+                              if (newEnd > END_HOUR + 1) newEnd = END_HOUR + 1;
+                              setEditing({ ...editing, end: newEnd });
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${
+                              isCurrent
+                                ? 'bg-rose-50 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-200'
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {editing.endDate !== editing.date && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-md px-3 py-1.5 border border-slate-200 dark:border-slate-700">
                       跨天事项：{editing.date} {floatToTimeStr(editing.start)} → {editing.endDate} {floatToTimeStr(editing.end)}
@@ -1663,7 +1772,6 @@
                 </div>
 
                 <div className="px-5 py-3 space-y-4">
-                  {/* 云同步 */}
                   <div>
                     <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">云同步</div>
                     {syncConnected ? (
