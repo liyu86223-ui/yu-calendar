@@ -1,523 +1,993 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>每日计划</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  html, body { overscroll-behavior-y: contain; }
-  body { -webkit-tap-highlight-color: transparent; }
-  .no-select { user-select: none; -webkit-user-select: none; }
-  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  /* 滑动切换的过渡动画 */
-  .slide-enter-left { animation: slideInLeft 220ms ease-out; }
-  .slide-enter-right { animation: slideInRight 220ms ease-out; }
-  @keyframes slideInLeft {
-    from { transform: translateX(40px); opacity: 0; }
-    to   { transform: translateX(0); opacity: 1; }
-  }
-  @keyframes slideInRight {
-    from { transform: translateX(-40px); opacity: 0; }
-    to   { transform: translateX(0); opacity: 1; }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>我的日程</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    html, body, #root { height: 100%; margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input[type="date"], input[type="time"] { -webkit-appearance: none; }
+  </style>
 </head>
-<body class="bg-slate-50">
+<body>
+  <div id="root"></div>
 
-<div id="app" class="w-full h-screen flex flex-col font-sans"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useRef, useEffect } = React;
 
-<script>
-/* =========================================================
-   每日计划 App —— 完整版 (含左右滑动切换)
-   ========================================================= */
+    /* ===== 内联 lucide 图标（替代 lucide-react） ===== */
+    const Icon = ({ children, size = 24, strokeWidth = 2, className = '', ...rest }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
+        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+        className={className} {...rest}>{children}</svg>
+    );
+    const ChevronLeft  = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
+    const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
+    const Check        = (p) => <Icon {...p}><polyline points="20 6 9 17 4 12"/></Icon>;
+    const Plus         = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+    const X            = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>;
+    const Trash2       = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></Icon>;
+    const Settings     = (p) => <Icon {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>;
+    const MapPin       = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
+    const Users        = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>;
+    const Sparkles     = (p) => <Icon {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></Icon>;
 
-// ---------- 状态 ----------
-const state = {
-  view: 'day',                 // 'day' | 'week' | 'month'
-  cursor: new Date(),          // 当前定位日期
-  events: loadEvents(),        // 事件列表
-  editing: null,               // 正在编辑的事件
-  slideDir: null,              // 'left' | 'right' 用于动画
-};
+    /* ===================== 你的代码 ===================== */
 
-const dragState = {
-  active: false,
-  id: null,
-  startY: 0,
-  origMin: 0,
-  moved: false,
-};
+    const HOUR_HEIGHT = 90;
+    const START_HOUR = 7;
+    const END_HOUR = 22;
+    const TIME_COL_WIDTH = 56;
 
-const swipeState = { x: 0, y: 0, t: 0, tracking: false };
+    const COLOR_PALETTE = {
+      rose:    { light: 'bg-rose-50',    border: 'border-rose-300',    text: 'text-rose-700',    deep: 'bg-rose-200',    deepText: 'text-rose-900',    deepBorder: 'border-rose-400',    dot: 'bg-rose-400',    barLight: 'bg-rose-100' },
+      red:     { light: 'bg-red-50',     border: 'border-red-300',     text: 'text-red-700',     deep: 'bg-red-200',     deepText: 'text-red-900',     deepBorder: 'border-red-400',     dot: 'bg-red-400',     barLight: 'bg-red-100' },
+      pink:    { light: 'bg-pink-50',    border: 'border-pink-300',    text: 'text-pink-700',    deep: 'bg-pink-200',    deepText: 'text-pink-900',    deepBorder: 'border-pink-400',    dot: 'bg-pink-400',    barLight: 'bg-pink-100' },
+      fuchsia: { light: 'bg-fuchsia-50', border: 'border-fuchsia-300', text: 'text-fuchsia-700', deep: 'bg-fuchsia-200', deepText: 'text-fuchsia-900', deepBorder: 'border-fuchsia-400', dot: 'bg-fuchsia-400', barLight: 'bg-fuchsia-100' },
+      purple:  { light: 'bg-purple-50',  border: 'border-purple-300',  text: 'text-purple-700',  deep: 'bg-purple-200',  deepText: 'text-purple-900',  deepBorder: 'border-purple-400',  dot: 'bg-purple-400',  barLight: 'bg-purple-100' },
+      violet:  { light: 'bg-violet-50',  border: 'border-violet-300',  text: 'text-violet-700',  deep: 'bg-violet-200',  deepText: 'text-violet-900',  deepBorder: 'border-violet-400',  dot: 'bg-violet-400',  barLight: 'bg-violet-100' },
+      indigo:  { light: 'bg-indigo-50',  border: 'border-indigo-300',  text: 'text-indigo-700',  deep: 'bg-indigo-200',  deepText: 'text-indigo-900',  deepBorder: 'border-indigo-400',  dot: 'bg-indigo-400',  barLight: 'bg-indigo-100' },
+      blue:    { light: 'bg-blue-50',    border: 'border-blue-300',    text: 'text-blue-700',    deep: 'bg-blue-200',    deepText: 'text-blue-900',    deepBorder: 'border-blue-400',    dot: 'bg-blue-400',    barLight: 'bg-blue-100' },
+      sky:     { light: 'bg-sky-50',     border: 'border-sky-300',     text: 'text-sky-700',     deep: 'bg-sky-200',     deepText: 'text-sky-900',     deepBorder: 'border-sky-400',     dot: 'bg-sky-400',     barLight: 'bg-sky-100' },
+      cyan:    { light: 'bg-cyan-50',    border: 'border-cyan-300',    text: 'text-cyan-700',    deep: 'bg-cyan-200',    deepText: 'text-cyan-900',    deepBorder: 'border-cyan-400',    dot: 'bg-cyan-400',    barLight: 'bg-cyan-100' },
+      teal:    { light: 'bg-teal-50',    border: 'border-teal-300',    text: 'text-teal-700',    deep: 'bg-teal-200',    deepText: 'text-teal-900',    deepBorder: 'border-teal-400',    dot: 'bg-teal-400',    barLight: 'bg-teal-100' },
+      emerald: { light: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-700', deep: 'bg-emerald-200', deepText: 'text-emerald-900', deepBorder: 'border-emerald-400', dot: 'bg-emerald-400', barLight: 'bg-emerald-100' },
+      green:   { light: 'bg-green-50',   border: 'border-green-300',   text: 'text-green-700',   deep: 'bg-green-200',   deepText: 'text-green-900',   deepBorder: 'border-green-400',   dot: 'bg-green-400',   barLight: 'bg-green-100' },
+      lime:    { light: 'bg-lime-50',    border: 'border-lime-300',    text: 'text-lime-700',    deep: 'bg-lime-200',    deepText: 'text-lime-900',    deepBorder: 'border-lime-400',    dot: 'bg-lime-400',    barLight: 'bg-lime-100' },
+      yellow:  { light: 'bg-yellow-50',  border: 'border-yellow-300',  text: 'text-yellow-700',  deep: 'bg-yellow-200',  deepText: 'text-yellow-900',  deepBorder: 'border-yellow-400',  dot: 'bg-yellow-400',  barLight: 'bg-yellow-100' },
+      amber:   { light: 'bg-amber-50',   border: 'border-amber-300',   text: 'text-amber-700',   deep: 'bg-amber-200',   deepText: 'text-amber-900',   deepBorder: 'border-amber-400',   dot: 'bg-amber-400',   barLight: 'bg-amber-100' },
+      orange:  { light: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-700',  deep: 'bg-orange-200',  deepText: 'text-orange-900',  deepBorder: 'border-orange-400',  dot: 'bg-orange-400',  barLight: 'bg-orange-100' },
+      stone:   { light: 'bg-stone-100',  border: 'border-stone-300',   text: 'text-stone-700',   deep: 'bg-stone-300',   deepText: 'text-stone-900',   deepBorder: 'border-stone-400',   dot: 'bg-stone-400',   barLight: 'bg-stone-200' },
+      zinc:    { light: 'bg-zinc-100',   border: 'border-zinc-300',    text: 'text-zinc-700',    deep: 'bg-zinc-300',    deepText: 'text-zinc-900',    deepBorder: 'border-zinc-400',    dot: 'bg-zinc-400',    barLight: 'bg-zinc-200' },
+      slate:   { light: 'bg-slate-100',  border: 'border-slate-300',   text: 'text-slate-700',   deep: 'bg-slate-300',   deepText: 'text-slate-900',   deepBorder: 'border-slate-400',   dot: 'bg-slate-400',   barLight: 'bg-slate-200' },
+    };
+    const PALETTE_KEYS = Object.keys(COLOR_PALETTE);
 
-// ---------- 工具 ----------
-const pad = (n) => String(n).padStart(2, '0');
-const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const sameDay = (a, b) => fmtDate(a) === fmtDate(b);
-const startOfDay = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
-const startOfWeek = (d) => {
-  const x = startOfDay(d);
-  const day = (x.getDay() + 6) % 7; // 周一为0
-  x.setDate(x.getDate() - day);
-  return x;
-};
-const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-const addMonths = (d, n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
-const minToTime = (m) => `${pad(Math.floor(m/60))}:${pad(m%60)}`;
-const uid = () => Math.random().toString(36).slice(2, 10);
+    const DEFAULT_CATEGORIES = [
+      { id: 'dance',   name: '跳舞', color: 'pink' },
+      { id: 'fitness', name: '健身', color: 'sky' },
+      { id: 'massage', name: '按摩', color: 'violet' },
+      { id: 'meal',    name: '约饭', color: 'amber' },
+      { id: 'fun',     name: '玩',   color: 'emerald' },
+      { id: 'other',   name: '其他', color: 'slate' },
+    ];
 
-function loadEvents() {
-  try {
-    const raw = localStorage.getItem('planner_events');
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  // 默认演示数据
-  const today = fmtDate(new Date());
-  return [
-    { id: uid(), date: today, start: 9*60,  end: 10*60,    title: '晨会', color: 'sky',     done: false },
-    { id: uid(), date: today, start: 10*60+30, end: 12*60, title: '产品评审', color: 'violet',  done: false },
-    { id: uid(), date: today, start: 14*60, end: 15*60+30, title: '专注写代码', color: 'emerald', done: true },
-    { id: uid(), date: today, start: 19*60, end: 20*60,    title: '健身', color: 'amber',  done: false },
-  ];
-}
-function saveEvents() {
-  try { localStorage.setItem('planner_events', JSON.stringify(state.events)); } catch(e) {}
-}
+    const initialEvents = [
+      { id: 1, title: '晨间瑜伽',     category: 'fitness', date: '2026-05-18', endDate: '2026-05-18', start: 7,    end: 8,    completed: true,  location: 'Z+ 健身房',     who: '' },
+      { id: 2, title: 'Hip-hop 入门', category: 'dance',   date: '2026-05-18', endDate: '2026-05-18', start: 19,   end: 20.5, completed: true,  location: 'JC 舞蹈工作室', who: 'Mira老师' },
+      { id: 3, title: '力量训练',     category: 'fitness', date: '2026-05-19', endDate: '2026-05-19', start: 18.5, end: 20,   completed: true,  location: 'Z+ 健身房',     who: '' },
+      { id: 9, title: 'K-pop 韩舞',   category: 'dance',   date: '2026-05-19', endDate: '2026-05-19', start: 12,   end: 13,   completed: false, location: '',              who: '' },
+      { id: 10,title: '中医按摩',     category: 'massage', date: '2026-05-20', endDate: '2026-05-20', start: 12,   end: 13,   completed: false, location: '万寿路',         who: '' },
+      { id: 4, title: 'Jazz 进阶',    category: 'dance',   date: '2026-05-20', endDate: '2026-05-20', start: 19,   end: 20.5, completed: false, location: 'JC 舞蹈工作室', who: 'Yuki老师' },
+      { id: 11,title: '上海团建',     category: 'fun',     date: '2026-05-22', endDate: '2026-05-24', start: 14,   end: 18,   completed: false, location: '上海',           who: '团队' },
+      { id: 6, title: '和小A 午餐',   category: 'meal',    date: '2026-05-21', endDate: '2026-05-21', start: 12,   end: 13.5, completed: false, location: '三里屯',         who: '小A' },
+    ];
 
-const COLORS = {
-  sky:     { bg:'bg-sky-100',     bd:'border-sky-400',     tx:'text-sky-800',     dot:'bg-sky-500'    },
-  violet:  { bg:'bg-violet-100',  bd:'border-violet-400',  tx:'text-violet-800',  dot:'bg-violet-500' },
-  emerald: { bg:'bg-emerald-100', bd:'border-emerald-400', tx:'text-emerald-800', dot:'bg-emerald-500'},
-  amber:   { bg:'bg-amber-100',   bd:'border-amber-400',   tx:'text-amber-900',   dot:'bg-amber-500'  },
-  rose:    { bg:'bg-rose-100',    bd:'border-rose-400',    tx:'text-rose-800',    dot:'bg-rose-500'   },
-  slate:   { bg:'bg-slate-100',   bd:'border-slate-400',   tx:'text-slate-800',   dot:'bg-slate-500'  },
-};
+    const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const formatTime = (h) => `${Math.floor(h)}:${String(Math.round((h%1)*60)).padStart(2,'0')}`;
+    const floatToTimeStr = (f) => `${String(Math.floor(f)).padStart(2,'0')}:${String(Math.round((f%1)*60)).padStart(2,'0')}`;
+    const timeStrToFloat = (s) => { const [h,m] = s.split(':').map(Number); return h + m/60; };
+    const dayNames = ['一','二','三','四','五','六','日'];
+    const monthDayLabels = ['周一','周二','周三','周四','周五','周六','周日'];
 
-// ---------- 导航 ----------
-function goPrev() {
-  state.slideDir = 'right';
-  if (state.view === 'day')   state.cursor = addDays(state.cursor, -1);
-  if (state.view === 'week')  state.cursor = addDays(state.cursor, -7);
-  if (state.view === 'month') state.cursor = addMonths(state.cursor, -1);
-  render();
-}
-function goNext() {
-  state.slideDir = 'left';
-  if (state.view === 'day')   state.cursor = addDays(state.cursor, 1);
-  if (state.view === 'week')  state.cursor = addDays(state.cursor, 7);
-  if (state.view === 'month') state.cursor = addMonths(state.cursor, 1);
-  render();
-}
-function goToday() { state.slideDir = null; state.cursor = new Date(); render(); }
-function setView(v) { state.slideDir = null; state.view = v; render(); }
+    const getSegment = (ev, dayStr) => {
+      const startStr = ev.date;
+      const endStr = ev.endDate || ev.date;
+      if (dayStr < startStr || dayStr > endStr) return null;
+      const isStart = dayStr === startStr;
+      const isEnd = dayStr === endStr;
+      return {
+        start: isStart ? ev.start : START_HOUR,
+        end: isEnd ? ev.end : END_HOUR + 1,
+        isStart, isEnd,
+        isMulti: startStr !== endStr,
+      };
+    };
 
-// ---------- 滑动切换 ----------
-function onSwipeStart(e) {
-  if (dragState.active) return;
-  // 编辑面板打开时不切换
-  if (state.editing) return;
-  const t = e.touches ? e.touches[0] : e;
-  swipeState.x = t.clientX;
-  swipeState.y = t.clientY;
-  swipeState.t = Date.now();
-  swipeState.tracking = true;
-}
-function onSwipeEnd(e) {
-  if (!swipeState.tracking) return;
-  swipeState.tracking = false;
-  if (dragState.active) return;
-  const t = e.changedTouches ? e.changedTouches[0] : e;
-  const dx = t.clientX - swipeState.x;
-  const dy = t.clientY - swipeState.y;
-  const dt = Date.now() - swipeState.t;
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 600) {
-    if (dx < 0) goNext();
-    else goPrev();
-  }
-}
+    function PlannerApp() {
+      const today = new Date(2026, 4, 20, 14, 30);
+      const todayStr = formatDate(today);
+      const [view, setView] = useState('week');
+      const [weekOffset, setWeekOffset] = useState(0);
+      const [monthOffset, setMonthOffset] = useState(0);
+      const [selectedDay, setSelectedDay] = useState(today);
+      const [isMobile, setIsMobile] = useState(false);
+      const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+      const [events, setEvents] = useState(initialEvents);
+      const [editing, setEditing] = useState(null);
+      const [managingCats, setManagingCats] = useState(false);
+      const [dragInfo, setDragInfo] = useState(null);
 
-// ---------- 编辑 ----------
-function openEditor(ev) { state.editing = { ...ev }; render(); }
-function closeEditor() { state.editing = null; render(); }
-function saveEditor() {
-  const e = state.editing;
-  if (!e || !e.title.trim()) return;
-  if (e.end <= e.start) e.end = e.start + 30;
-  const idx = state.events.findIndex(x => x.id === e.id);
-  if (idx >= 0) state.events[idx] = e;
-  else state.events.push(e);
-  saveEvents();
-  state.editing = null;
-  render();
-}
-function deleteEditor() {
-  const e = state.editing;
-  if (!e) return;
-  state.events = state.events.filter(x => x.id !== e.id);
-  saveEvents();
-  state.editing = null;
-  render();
-}
-function newEventOn(dateStr, startMin = 9*60) {
-  openEditor({
-    id: uid(), date: dateStr,
-    start: startMin, end: startMin + 60,
-    title: '', color: 'sky', done: false, _isNew: true,
-  });
-}
-function toggleDone(id) {
-  const e = state.events.find(x => x.id === id);
-  if (e) { e.done = !e.done; saveEvents(); render(); }
-}
+      const dragStateRef = useRef(null);
+      const justDraggedRef = useRef(false);
+      const gridRef = useRef(null);
+      const weekStartRef = useRef(null);
+      const viewRef = useRef(view);
+      const selectedDayStrRef = useRef(formatDate(selectedDay));
 
-// ---------- 拖拽 (日视图内移动事件) ----------
-const HOUR_PX = 56;
-const MIN_PX = HOUR_PX / 60;
+      useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+      }, []);
 
-function onEventDragStart(e, id) {
-  e.preventDefault();
-  e.stopPropagation();
-  const ev = state.events.find(x => x.id === id);
-  if (!ev) return;
-  dragState.active = true;
-  dragState.id = id;
-  dragState.startY = e.touches ? e.touches[0].clientY : e.clientY;
-  dragState.origMin = ev.start;
-  dragState.moved = false;
-  document.addEventListener('mousemove', onEventDragMove);
-  document.addEventListener('mouseup', onEventDragEnd);
-  document.addEventListener('touchmove', onEventDragMove, { passive:false });
-  document.addEventListener('touchend', onEventDragEnd);
-}
-function onEventDragMove(e) {
-  if (!dragState.active) return;
-  e.preventDefault();
-  const y = e.touches ? e.touches[0].clientY : e.clientY;
-  const dy = y - dragState.startY;
-  if (Math.abs(dy) > 4) dragState.moved = true;
-  const ev = state.events.find(x => x.id === dragState.id);
-  if (!ev) return;
-  const dur = ev.end - ev.start;
-  let newStart = Math.round((dragState.origMin + dy / MIN_PX) / 15) * 15;
-  newStart = Math.max(0, Math.min(24*60 - dur, newStart));
-  ev.start = newStart;
-  ev.end = newStart + dur;
-  // 局部更新位置
-  const el = document.querySelector(`[data-evid="${ev.id}"]`);
-  if (el) {
-    el.style.top = (ev.start * MIN_PX) + 'px';
-    el.style.height = (dur * MIN_PX) + 'px';
-    const lab = el.querySelector('[data-time]');
-    if (lab) lab.textContent = `${minToTime(ev.start)} - ${minToTime(ev.end)}`;
-  }
-}
-function onEventDragEnd(e) {
-  if (!dragState.active) return;
-  document.removeEventListener('mousemove', onEventDragMove);
-  document.removeEventListener('mouseup', onEventDragEnd);
-  document.removeEventListener('touchmove', onEventDragMove);
-  document.removeEventListener('touchend', onEventDragEnd);
-  const wasMoved = dragState.moved;
-  const id = dragState.id;
-  dragState.active = false;
-  dragState.id = null;
-  if (wasMoved) {
-    saveEvents();
-    render();
-  } else {
-    // 视为点击，打开编辑
-    const ev = state.events.find(x => x.id === id);
-    if (ev) openEditor(ev);
-  }
-}
+      useEffect(() => {
+        if (isMobile && view === 'week') setView('month');
+      }, [isMobile]);
 
-// ---------- 渲染 ----------
-function render() {
-  const root = document.getElementById('app');
-  root.innerHTML = `
-    ${renderHeader()}
-    <main id="mainArea" class="flex-1 overflow-hidden flex flex-col bg-slate-50">
-      ${renderViewContainer()}
-    </main>
-    ${state.editing ? renderEditor() : ''}
-    <button onclick="newEventOn('${fmtDate(state.cursor)}', 9*60)"
-            class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg flex items-center justify-center text-3xl z-30 active:scale-95 transition">
-      +
-    </button>
-  `;
-  // 给主区域绑定滑动
-  const main = document.getElementById('mainArea');
-  main.addEventListener('touchstart', onSwipeStart, { passive: true });
-  main.addEventListener('touchend', onSwipeEnd);
-  // 自动滚到 8:00
-  const tg = document.getElementById('timeGrid');
-  if (tg) tg.scrollTop = 7 * HOUR_PX;
-}
+      useEffect(() => { viewRef.current = view; });
+      useEffect(() => { selectedDayStrRef.current = formatDate(selectedDay); });
 
-function renderHeader() {
-  const c = state.cursor;
-  let title = '';
-  if (state.view === 'day') {
-    const wk = ['周日','周一','周二','周三','周四','周五','周六'][c.getDay()];
-    title = `${c.getMonth()+1}月${c.getDate()}日 · ${wk}`;
-  } else if (state.view === 'week') {
-    const s = startOfWeek(c), e = addDays(s, 6);
-    title = `${s.getMonth()+1}月${s.getDate()}日 - ${e.getMonth()+1}月${e.getDate()}日`;
-  } else {
-    title = `${c.getFullYear()}年${c.getMonth()+1}月`;
-  }
-  return `
-    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-2 shadow-sm">
-      <button onclick="goPrev()" class="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 active:bg-slate-200">‹</button>
-      <button onclick="goToday()" class="px-3 h-9 rounded-lg text-sm font-medium hover:bg-slate-100 text-slate-700">今天</button>
-      <button onclick="goNext()" class="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 active:bg-slate-200">›</button>
-      <div class="flex-1 text-center font-semibold text-slate-800 text-base">${title}</div>
-      <div class="flex bg-slate-100 rounded-lg p-1 text-xs">
-        ${['day','week','month'].map(v => `
-          <button onclick="setView('${v}')"
-            class="px-2 py-1 rounded-md font-medium ${state.view===v?'bg-white shadow text-indigo-600':'text-slate-600'}">
-            ${ {day:'日', week:'周', month:'月'}[v] }
-          </button>
-        `).join('')}
-      </div>
-    </header>
-  `;
-}
+      const weekStart = useMemo(() => {
+        const d = new Date(today);
+        const day = d.getDay() || 7;
+        d.setDate(d.getDate() - day + 1 + weekOffset * 7);
+        d.setHours(0,0,0,0);
+        return d;
+      }, [weekOffset]);
+      useEffect(() => { weekStartRef.current = weekStart; });
 
-function renderViewContainer() {
-  const animClass = state.slideDir === 'left' ? 'slide-enter-left'
-                  : state.slideDir === 'right' ? 'slide-enter-right' : '';
-  state.slideDir = null;
-  let inner = '';
-  if (state.view === 'day') inner = renderDay();
-  else if (state.view === 'week') inner = renderWeek();
-  else inner = renderMonth();
-  return `<div class="flex-1 overflow-hidden flex flex-col ${animClass}">${inner}</div>`;
-}
+      const weekDays = useMemo(() =>
+        Array.from({length:7}, (_,i) => { const d = new Date(weekStart); d.setDate(d.getDate()+i); return d; }),
+        [weekStart]
+      );
 
-// 日视图
-function renderDay() {
-  const dateStr = fmtDate(state.cursor);
-  const dayEvents = state.events
-    .filter(e => e.date === dateStr)
-    .sort((a,b) => a.start - b.start);
-  const isToday = sameDay(state.cursor, new Date());
-  const now = new Date();
-  const nowMin = now.getHours()*60 + now.getMinutes();
+      const monthInfo = useMemo(() => {
+        const base = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+        const first = new Date(base);
+        const dow = first.getDay() || 7;
+        const calStart = new Date(first);
+        calStart.setDate(calStart.getDate() - dow + 1);
+        const weeks = [];
+        for (let w = 0; w < 6; w++) {
+          const arr = [];
+          for (let d = 0; d < 7; d++) {
+            const day = new Date(calStart);
+            day.setDate(day.getDate() + w*7 + d);
+            arr.push(day);
+          }
+          weeks.push(arr);
+        }
+        return { monthDate: base, weeks };
+      }, [monthOffset]);
 
-  const hours = Array.from({length:24}, (_,i) => `
-    <div class="relative" style="height:${HOUR_PX}px">
-      <div class="absolute -top-2 left-2 text-xs text-slate-400 bg-slate-50 px-1">${pad(i)}:00</div>
-      <div class="absolute top-0 left-14 right-2 border-t border-slate-200"></div>
-      <div class="absolute left-14 right-2 border-t border-slate-100" style="top:${HOUR_PX/2}px"></div>
-    </div>
-  `).join('');
+      const getCat = (id) => categories.find(c => c.id === id) || categories[0] || { name: '?', color: 'slate' };
+      const getStyle = (catId) => COLOR_PALETTE[getCat(catId).color] || COLOR_PALETTE.slate;
 
-  const evHTML = dayEvents.map(ev => {
-    const c = COLORS[ev.color] || COLORS.sky;
-    const dur = ev.end - ev.start;
-    return `
-      <div data-evid="${ev.id}"
-           class="absolute left-14 right-2 rounded-lg border-l-4 ${c.bg} ${c.bd} shadow-sm overflow-hidden no-select cursor-grab active:cursor-grabbing ${ev.done?'opacity-60':''}"
-           style="top:${ev.start*MIN_PX}px; height:${dur*MIN_PX}px;"
-           onmousedown="onEventDragStart(event, '${ev.id}')"
-           ontouchstart="onEventDragStart(event, '${ev.id}')">
-        <div class="p-2 flex items-start gap-2 h-full">
-          <button onclick="event.stopPropagation(); toggleDone('${ev.id}')"
-                  class="mt-0.5 w-4 h-4 rounded border-2 ${ev.done?c.bd+' '+c.dot:'border-slate-400 bg-white'} flex-shrink-0 flex items-center justify-center">
-            ${ev.done ? '<span class="text-white text-xs leading-none">✓</span>' : ''}
-          </button>
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm ${c.tx} truncate ${ev.done?'line-through':''}">${escape(ev.title)}</div>
-            <div data-time class="text-xs ${c.tx} opacity-75">${minToTime(ev.start)} - ${minToTime(ev.end)}</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
+      const displayEvents = useMemo(() => {
+        if (!dragInfo?.isDragging || !dragInfo.target) return events;
+        return events.map(e => {
+          if (e.id !== dragInfo.id) return e;
+          const dur = e.end - e.start;
+          return { ...e, date: dragInfo.target.date, endDate: dragInfo.target.date, start: dragInfo.target.hour, end: dragInfo.target.hour + dur };
+        });
+      }, [events, dragInfo]);
 
-  const nowLine = isToday ? `
-    <div class="absolute left-0 right-0 z-10 pointer-events-none" style="top:${nowMin*MIN_PX}px">
-      <div class="flex items-center">
-        <div class="w-3 h-3 rounded-full bg-rose-500 ml-12 -mr-1.5"></div>
-        <div class="flex-1 border-t-2 border-rose-500"></div>
-      </div>
-    </div>
-  ` : '';
+      const weekEventsCount = useMemo(() => {
+        let total = 0, done = 0;
+        events.forEach(e => {
+          const start = new Date(e.date);
+          const end = new Date(e.endDate || e.date);
+          const wEnd = new Date(weekStart.getTime() + 7*24*60*60*1000);
+          if (end >= weekStart && start < wEnd) {
+            total++;
+            if (e.completed) done++;
+          }
+        });
+        return { total, done };
+      }, [events, weekStart]);
 
-  return `
-    <div id="timeGrid" class="flex-1 overflow-y-auto scrollbar-thin relative bg-slate-50">
-      <div class="relative" style="height:${24*HOUR_PX}px">
-        ${hours}
-        ${evHTML}
-        ${nowLine}
-      </div>
-    </div>
-  `;
-}
+      const isMissed = (ev) => {
+        if (ev.completed) return false;
+        const endStr = ev.endDate || ev.date;
+        const d = new Date(endStr);
+        d.setHours(Math.floor(ev.end), (ev.end%1)*60, 0);
+        return d < today;
+      };
 
-// 周视图（PC 友好，移动端也可用）
-function renderWeek() {
-  const start = startOfWeek(state.cursor);
-  const days = Array.from({length:7}, (_,i) => addDays(start, i));
-  const today = new Date();
-  return `
-    <div class="flex-1 overflow-y-auto scrollbar-thin">
-      <div class="grid grid-cols-7 gap-1 p-2">
-        ${days.map(d => {
-          const dateStr = fmtDate(d);
-          const evs = state.events.filter(e => e.date === dateStr).sort((a,b)=>a.start-b.start);
-          const isToday = sameDay(d, today);
-          return `
-            <div class="bg-white rounded-lg border ${isToday?'border-indigo-400':'border-slate-200'} p-2 min-h-[200px] flex flex-col">
-              <div class="text-center mb-2">
-                <div class="text-xs text-slate-500">${['一','二','三','四','五','六','日'][(d.getDay()+6)%7]}</div>
-                <div class="font-semibold ${isToday?'text-indigo-600':'text-slate-800'}">${d.getDate()}</div>
+      useEffect(() => {
+        const computeTarget = (clientX, clientY) => {
+          const grid = gridRef.current;
+          if (!grid) return null;
+          const rect = grid.getBoundingClientRect();
+          const x = clientX - rect.left;
+          const y = clientY - rect.top + grid.scrollTop;
+          if (x < TIME_COL_WIDTH || x > rect.width) return null;
+          let hour = START_HOUR + y / HOUR_HEIGHT;
+          hour = Math.round(hour * 4) / 4;
+          hour = Math.max(START_HOUR, Math.min(END_HOUR, hour));
+
+          if (viewRef.current === 'day') {
+            return { date: selectedDayStrRef.current, hour, dayIdx: 0 };
+          }
+
+          const dayWidth = (rect.width - TIME_COL_WIDTH) / 7;
+          const dayIdx = Math.floor((x - TIME_COL_WIDTH) / dayWidth);
+          if (dayIdx < 0 || dayIdx >= 7) return null;
+          const date = new Date(weekStartRef.current);
+          date.setDate(date.getDate() + dayIdx);
+          return { date: formatDate(date), hour, dayIdx };
+        };
+
+        const onMove = (e) => {
+          const s = dragStateRef.current;
+          if (!s) return;
+          const dist = Math.hypot(e.clientX - s.startX, e.clientY - s.startY);
+          if (s.isTouch && !s.isDragging) {
+            if (dist > 10) { clearTimeout(s.timer); dragStateRef.current = null; setDragInfo(null); }
+            return;
+          }
+          if (!s.isTouch && !s.isDragging && dist > 4) s.isDragging = true;
+          if (s.isDragging) {
+            if (e.cancelable) e.preventDefault();
+            s.target = computeTarget(e.clientX, e.clientY);
+            setDragInfo({ ...s });
+          }
+        };
+
+        const onUp = (e) => {
+          const s = dragStateRef.current;
+          if (!s) return;
+          if (s.timer) clearTimeout(s.timer);
+          if (s.isDragging) {
+            const target = computeTarget(e.clientX, e.clientY);
+            if (target) {
+              const duration = s.ev.end - s.ev.start;
+              let newStart = target.hour;
+              let newEnd = newStart + duration;
+              if (newEnd > END_HOUR + 1) {
+                newEnd = END_HOUR + 1;
+                newStart = Math.max(START_HOUR, newEnd - duration);
+                newEnd = newStart + duration;
+              }
+              setEvents(prev => prev.map(ev =>
+                ev.id === s.id ? { ...ev, date: target.date, endDate: target.date, start: newStart, end: newEnd } : ev
+              ));
+            }
+            justDraggedRef.current = true;
+            setTimeout(() => { justDraggedRef.current = false; }, 250);
+          } else {
+            setEvents(prev => prev.map(ev =>
+              ev.id === s.id ? { ...ev, completed: !ev.completed } : ev
+            ));
+          }
+          dragStateRef.current = null;
+          setDragInfo(null);
+        };
+
+        window.addEventListener('pointermove', onMove, { passive: false });
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
+        return () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          window.removeEventListener('pointercancel', onUp);
+        };
+      }, []);
+
+      const handleEventPointerDown = (e, ev) => {
+        e.stopPropagation();
+        const isMulti = (ev.endDate || ev.date) !== ev.date;
+        if (isMulti) {
+          e.preventDefault();
+          const startX = e.clientX, startY = e.clientY;
+          const onUp2 = (e2) => {
+            const dist = Math.hypot(e2.clientX - startX, e2.clientY - startY);
+            if (dist < 8) {
+              setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, completed: !x.completed } : x));
+            }
+            window.removeEventListener('pointerup', onUp2);
+          };
+          window.addEventListener('pointerup', onUp2);
+          return;
+        }
+        const isTouch = e.pointerType === 'touch';
+        const state = {
+          id: ev.id, ev,
+          startX: e.clientX, startY: e.clientY,
+          isTouch, isDragging: false, timer: null, target: null,
+        };
+        dragStateRef.current = state;
+        if (isTouch) {
+          state.timer = setTimeout(() => {
+            if (dragStateRef.current === state && !state.isDragging) {
+              state.isDragging = true;
+              if (navigator.vibrate) navigator.vibrate(20);
+              setDragInfo({ ...state });
+            }
+          }, 280);
+        }
+      };
+
+      const openNewEvent = (date, hour) => {
+        const startH = hour != null ? Math.max(START_HOUR, Math.min(END_HOUR-1, hour)) : 19;
+        const dStr = formatDate(date);
+        setEditing({
+          id: null, title: '',
+          category: categories[0]?.id || 'other',
+          date: dStr, endDate: dStr,
+          start: startH, end: startH + 1,
+          completed: false, location: '', who: '',
+        });
+      };
+
+      const saveEvent = () => {
+        if (!editing.title.trim()) return;
+        if (editing.endDate < editing.date) return;
+        if (editing.endDate === editing.date && editing.end <= editing.start) return;
+        if (editing.id == null) {
+          const newId = Math.max(0, ...events.map(e => e.id)) + 1;
+          setEvents([...events, { ...editing, id: newId }]);
+        } else {
+          setEvents(events.map(e => e.id === editing.id ? editing : e));
+        }
+        setEditing(null);
+      };
+
+      const deleteEvent = () => {
+        setEvents(events.filter(e => e.id !== editing.id));
+        setEditing(null);
+      };
+
+      const onColumnClick = (e, day) => {
+        if (justDraggedRef.current) return;
+        if (!e.target.dataset || !e.target.dataset.empty) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const hour = Math.floor(y / HOUR_HEIGHT) + START_HOUR;
+        openNewEvent(day, hour);
+      };
+
+      const updateCat = (id, patch) => setCategories(cs => cs.map(c => c.id === id ? { ...c, ...patch } : c));
+      const deleteCat = (id) => {
+        if (categories.length <= 1) return;
+        const fb = categories.find(c => c.id !== id).id;
+        setCategories(cs => cs.filter(c => c.id !== id));
+        setEvents(es => es.map(e => e.category === id ? { ...e, category: fb } : e));
+      };
+      const addCat = () => {
+        const newId = `cat_${Date.now()}`;
+        const used = new Set(categories.map(c => c.color));
+        const avail = PALETTE_KEYS.find(k => !used.has(k)) || 'slate';
+        setCategories(cs => [...cs, { id: newId, name: '新分类', color: avail }]);
+      };
+
+      const computeWeekBars = (wDays) => {
+        const wStart = formatDate(wDays[0]);
+        const wEnd = formatDate(wDays[6]);
+        const overlapping = events.filter(ev => {
+          const eEnd = ev.endDate || ev.date;
+          return ev.date <= wEnd && eEnd >= wStart;
+        });
+        overlapping.sort((a, b) => {
+          if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+          const aLen = (new Date(a.endDate || a.date) - new Date(a.date));
+          const bLen = (new Date(b.endDate || b.date) - new Date(b.date));
+          if (aLen !== bLen) return bLen - aLen;
+          return a.start - b.start;
+        });
+        const lanes = [];
+        return overlapping.map(ev => {
+          const evEnd = ev.endDate || ev.date;
+          const sStr = ev.date < wStart ? wStart : ev.date;
+          const eStr = evEnd > wEnd ? wEnd : evEnd;
+          const startCol = wDays.findIndex(d => formatDate(d) === sStr);
+          const endCol = wDays.findIndex(d => formatDate(d) === eStr);
+          let lane = -1;
+          for (let i = 0; i < lanes.length; i++) {
+            if (lanes[i] < startCol) { lane = i; lanes[i] = endCol; break; }
+          }
+          if (lane === -1) { lane = lanes.length; lanes.push(endCol); }
+          return { ev, startCol, endCol, lane };
+        });
+      };
+
+      const hours = Array.from({length: END_HOUR-START_HOUR+1}, (_,i) => START_HOUR+i);
+      const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400";
+
+      const isTimelineView = view === 'week' || view === 'day';
+      const timelineDays = view === 'day' ? [selectedDay] : weekDays;
+
+      const headerLabel = (() => {
+        if (view === 'day') {
+          const wd = (selectedDay.getDay() || 7) - 1;
+          return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日 · 周${dayNames[wd]}`;
+        }
+        if (view === 'week') return `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月`;
+        return `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
+      })();
+
+      const goPrev = () => {
+        if (view === 'day') {
+          const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d);
+        } else if (view === 'week') setWeekOffset(o => o-1);
+        else setMonthOffset(o => o-1);
+      };
+      const goNext = () => {
+        if (view === 'day') {
+          const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d);
+        } else if (view === 'week') setWeekOffset(o => o+1);
+        else setMonthOffset(o => o+1);
+      };
+      const goToday = () => {
+        if (view === 'day') setSelectedDay(today);
+        else if (view === 'week') setWeekOffset(0);
+        else setMonthOffset(0);
+      };
+      const offsetIsZero = view === 'day'
+        ? formatDate(selectedDay) === todayStr
+        : view === 'week' ? weekOffset === 0 : monthOffset === 0;
+
+      const onMonthDayTap = (d) => {
+        if (isMobile) {
+          setSelectedDay(d);
+          setView('day');
+        } else {
+          openNewEvent(d);
+        }
+      };
+
+      return (
+        <div className="w-full h-screen bg-slate-50 flex flex-col font-sans"
+          style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
+                   userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
+          <div className="bg-white border-b border-slate-200 px-3 py-3 flex items-center justify-between shrink-0 gap-2">
+            <div className="flex items-center gap-1 min-w-0">
+              <button onClick={goPrev} className="p-1.5 hover:bg-slate-100 rounded-md transition shrink-0">
+                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              </button>
+              <div className="px-1 min-w-0">
+                <div className="text-base font-semibold text-slate-800 truncate">{headerLabel}</div>
+                {!offsetIsZero && (
+                  <button onClick={goToday} className="text-xs text-rose-500 hover:text-rose-700">← 回到今天</button>
+                )}
               </div>
-              <div class="flex-1 space-y-1 overflow-y-auto">
-                ${evs.map(ev => {
-                  const c = COLORS[ev.color] || COLORS.sky;
-                  return `
-                    <div onclick="openEditor(${JSON.stringify(ev).replace(/"/g,'&quot;')})"
-                         class="text-xs ${c.bg} ${c.tx} rounded px-1.5 py-1 cursor-pointer truncate ${ev.done?'opacity-60 line-through':''}">
-                      <span class="font-medium">${minToTime(ev.start)}</span> ${escape(ev.title)}
+              <button onClick={goNext} className="p-1.5 hover:bg-slate-100 rounded-md transition shrink-0">
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex bg-slate-100 rounded-full p-0.5">
+                {isMobile ? (
+                  <>
+                    <button onClick={() => setView('month')}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                        view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}>月</button>
+                    <button onClick={() => setView('day')}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                        view === 'day' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}>日</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setView('week')}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                        view === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}>周</button>
+                    <button onClick={() => setView('month')}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                        view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}>月</button>
+                  </>
+                )}
+              </div>
+
+              {view === 'week' && (
+                <div className="hidden md:flex items-center gap-2 text-sm bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                  <Sparkles className="w-4 h-4 text-emerald-500" />
+                  <span className="font-bold text-emerald-600">{weekEventsCount.done}</span>
+                  <span className="text-emerald-400">/ {weekEventsCount.total}</span>
+                </div>
+              )}
+              <button onClick={() => setManagingCats(true)}
+                className="p-1.5 hover:bg-slate-100 rounded-full text-slate-600 transition" title="管理分类">
+                <Settings className="w-5 h-5" />
+              </button>
+              <button onClick={() => openNewEvent(view === 'day' ? selectedDay : today, 19)}
+                className="flex items-center gap-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-full text-sm font-medium transition shadow-sm">
+                <Plus className="w-4 h-4" strokeWidth={3} />
+                <span className="hidden sm:inline">新建</span>
+              </button>
+            </div>
+          </div>
+
+          {isTimelineView && (
+            <>
+              <div className="bg-white border-b border-slate-200 flex shrink-0">
+                <div style={{width: TIME_COL_WIDTH}} className="shrink-0"></div>
+                {timelineDays.map((d, i) => {
+                  const isToday = formatDate(d) === todayStr;
+                  const wd = (d.getDay() || 7) - 1;
+                  return (
+                    <div key={i} className="flex-1 py-2 text-center border-l border-slate-100 min-w-0">
+                      <div className="text-xs text-slate-500">周{dayNames[wd]}</div>
+                      <div className="mt-1 flex justify-center">
+                        <div className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
+                          isToday ? 'text-white bg-rose-500' : 'text-slate-800'
+                        }`}>{d.getDate()}</div>
+                      </div>
                     </div>
-                  `;
-                }).join('')}
+                  );
+                })}
               </div>
-              <button onclick="newEventOn('${dateStr}', 9*60)" class="text-xs text-slate-400 hover:text-indigo-600 mt-1">+ 添加</button>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-}
 
-// 月视图
-function renderMonth() {
-  const c = state.cursor;
-  const first = new Date(c.getFullYear(), c.getMonth(), 1);
-  const startOff = (first.getDay() + 6) % 7;
-  const gridStart = addDays(first, -startOff);
-  const today = new Date();
-  const cells = Array.from({length:42}, (_,i) => addDays(gridStart, i));
+              <div ref={gridRef} className="flex-1 overflow-y-auto">
+                <div className="flex relative">
+                  <div style={{width: TIME_COL_WIDTH}} className="shrink-0">
+                    {hours.map(h => (
+                      <div key={h} style={{height:HOUR_HEIGHT}} className="text-xs text-slate-400 text-right pr-2 -translate-y-2">
+                        {h}:00
+                      </div>
+                    ))}
+                  </div>
 
-  return `
-    <div class="flex-1 overflow-y-auto scrollbar-thin p-2 flex flex-col">
-      <div class="grid grid-cols-7 mb-1 text-xs text-slate-500 text-center font-medium">
-        ${['一','二','三','四','五','六','日'].map(d => `<div class="py-1">${d}</div>`).join('')}
-      </div>
-      <div class="grid grid-cols-7 gap-1 flex-1">
-        ${cells.map(d => {
-          const dateStr = fmtDate(d);
-          const evs = state.events.filter(e => e.date === dateStr);
-          const inMonth = d.getMonth() === c.getMonth();
-          const isToday = sameDay(d, today);
-          return `
-            <div onclick="state.cursor=new Date('${dateStr}'); setView('day')"
-                 class="bg-white rounded-md border ${isToday?'border-indigo-400':'border-slate-200'} p-1 cursor-pointer hover:bg-indigo-50 flex flex-col gap-0.5 min-h-0">
-              <div class="text-xs ${inMonth?(isToday?'text-indigo-600 font-bold':'text-slate-700'):'text-slate-300'}">${d.getDate()}</div>
-              <div class="flex-1 flex flex-col gap-0.5 overflow-hidden">
-                ${evs.slice(0,3).map(ev => {
-                  const cc = COLORS[ev.color] || COLORS.sky;
-                  return `<div class="flex items-center gap-1 text-[10px] truncate ${ev.done?'opacity-60':''}">
-                    <span class="w-1.5 h-1.5 rounded-full ${cc.dot} flex-shrink-0"></span>
-                    <span class="truncate ${ev.done?'line-through text-slate-500':'text-slate-700'}">${escape(ev.title)}</span>
-                  </div>`;
-                }).join('')}
-                ${evs.length > 3 ? `<div class="text-[10px] text-slate-400">+${evs.length-3}</div>` : ''}
+                  {timelineDays.map((d, dayIdx) => {
+                    const dStr = formatDate(d);
+                    const isToday = dStr === todayStr;
+
+                    return (
+                      <div
+                        key={dayIdx}
+                        data-empty="true"
+                        onClick={(e) => onColumnClick(e, d)}
+                        className={`flex-1 border-l border-slate-100 relative cursor-pointer min-w-0 ${isToday ? 'bg-rose-50/30' : ''}`}
+                      >
+                        {hours.map(h => (
+                          <div key={h} data-empty="true" style={{height:HOUR_HEIGHT}} className="border-b border-slate-100"></div>
+                        ))}
+
+                        {displayEvents.map(ev => {
+                          const seg = getSegment(ev, dStr);
+                          if (!seg) return null;
+                          const top = (seg.start - START_HOUR) * HOUR_HEIGHT;
+                          const height = (seg.end - seg.start) * HOUR_HEIGHT;
+                          const style = getStyle(ev.category);
+                          const missed = isMissed(ev);
+                          const isBeingDragged = dragInfo?.isDragging && dragInfo.id === ev.id;
+
+                          let cardCls = '', circleCls = '';
+                          if (missed) {
+                            cardCls = 'bg-slate-100 text-slate-400 border border-slate-200';
+                            circleCls = 'border-2 border-slate-300';
+                          } else if (ev.completed) {
+                            cardCls = `${style.deep} ${style.deepText} border ${style.deepBorder}`;
+                            circleCls = `${style.dot} border-2 ${style.deepBorder}`;
+                          } else {
+                            cardCls = `${style.light} ${style.text} border ${style.border}`;
+                            circleCls = `border-2 ${style.border} bg-white/60`;
+                          }
+
+                          const roundCls = seg.isMulti
+                            ? `${seg.isStart ? 'rounded-t-lg' : ''} ${seg.isEnd ? 'rounded-b-lg' : ''}`
+                            : 'rounded-lg';
+
+                          const showLocation = ev.location && height >= 70 && seg.isStart;
+                          const showWho = ev.who && height >= (showLocation ? 90 : 70) && seg.isStart;
+
+                          return (
+                            <div
+                              key={`${ev.id}-${dStr}`}
+                              onPointerDown={(e) => handleEventPointerDown(e, ev)}
+                              onDoubleClick={(e) => { e.stopPropagation(); setEditing({ ...ev }); }}
+                              style={{ top, height: height-3, touchAction: 'none' }}
+                              className={`absolute left-1 right-1 ${roundCls} p-2 pr-7 text-left select-none ${cardCls} ${
+                                isBeingDragged ? 'shadow-lg ring-2 ring-rose-400' : ''
+                              }`}
+                            >
+                              {seg.isEnd && (
+                                <div className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${circleCls}`}>
+                                  {ev.completed && <Check className="w-3 h-3 text-white" strokeWidth={4} />}
+                                </div>
+                              )}
+
+                              {seg.isStart && (
+                                <>
+                                  <div className={`text-xs font-semibold truncate ${missed ? 'line-through' : ''}`}>
+                                    {ev.title}
+                                    {seg.isMulti && <span className="ml-1 opacity-60">→</span>}
+                                  </div>
+                                  <div className="text-xs opacity-75 truncate mt-0.5">
+                                    {formatTime(ev.start)}{seg.isMulti ? ` 起` : ` - ${formatTime(ev.end)}`}
+                                  </div>
+                                  {showLocation && (
+                                    <div className="text-xs truncate mt-1 flex items-center opacity-80">
+                                      <MapPin className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                                      <span className="ml-1 truncate">{ev.location}</span>
+                                    </div>
+                                  )}
+                                  {showWho && (
+                                    <div className="text-xs truncate mt-0.5 flex items-center opacity-80">
+                                      <Users className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                                      <span className="ml-1 truncate">{ev.who}</span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              {!seg.isStart && (
+                                <div className="text-xs font-medium opacity-70 truncate">
+                                  <span className="opacity-60">←</span> {ev.title}
+                                  {!seg.isEnd && <span className="ml-1 opacity-60">→</span>}
+                                </div>
+                              )}
+                              {!seg.isStart && seg.isEnd && (
+                                <div className="text-xs opacity-75 truncate mt-0.5">截止 {formatTime(ev.end)}</div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {isToday && (() => {
+                          const nowHour = today.getHours() + today.getMinutes()/60;
+                          if (nowHour >= START_HOUR && nowHour <= END_HOUR) {
+                            const top = (nowHour-START_HOUR)*HOUR_HEIGHT;
+                            return (
+                              <div style={{top}} className="absolute left-0 right-0 z-10 pointer-events-none">
+                                <div className="h-0.5 bg-rose-500 relative">
+                                  <div className="absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {view === 'month' && (
+            <>
+              <div className="bg-white border-b border-slate-200 grid grid-cols-7 shrink-0">
+                {monthDayLabels.map((l, i) => (
+                  <div key={i} className="py-2 text-center text-xs text-slate-500 border-l border-slate-100 first:border-l-0">{l}</div>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <div className="flex flex-col h-full">
+                  {monthInfo.weeks.map((wDays, wIdx) => {
+                    const bars = computeWeekBars(wDays);
+                    const laneCap = 3;
+                    const overflow = wDays.map((d, di) => {
+                      const dStr = formatDate(d);
+                      return bars.filter(b => b.lane >= laneCap && b.startCol <= di && b.endCol >= di && (b.ev.date <= dStr && (b.ev.endDate || b.ev.date) >= dStr)).length;
+                    });
+
+                    return (
+                      <div key={wIdx} className="flex-1 grid grid-cols-7 relative border-b border-slate-100 last:border-b-0 min-h-0">
+                        {wDays.map((d, di) => {
+                          const dStr = formatDate(d);
+                          const isToday = dStr === todayStr;
+                          const inMonth = d.getMonth() === monthInfo.monthDate.getMonth();
+                          return (
+                            <div
+                              key={di}
+                              onClick={(e) => {
+                                if (e.target === e.currentTarget || e.target.dataset.empty) onMonthDayTap(d);
+                              }}
+                              className={`relative border-l border-slate-100 first:border-l-0 cursor-pointer hover:bg-slate-50 transition ${
+                                !inMonth ? 'bg-slate-50/50' : ''
+                              } ${isToday ? 'bg-rose-50/40' : ''}`}
+                              data-empty="true"
+                            >
+                              <div className="flex justify-end p-1.5" data-empty="true">
+                                <div className={`text-xs w-6 h-6 flex items-center justify-center rounded-full font-medium ${
+                                  isToday ? 'bg-rose-500 text-white' :
+                                  inMonth ? 'text-slate-700' : 'text-slate-400'
+                                }`}>{d.getDate()}</div>
+                              </div>
+                              <div data-empty="true" style={{ height: laneCap * 22 + (overflow[di] > 0 ? 18 : 0) }}></div>
+                              {overflow[di] > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isMobile) {
+                                      setSelectedDay(d);
+                                      setView('day');
+                                    } else {
+                                      const w = new Date(wDays[0]);
+                                      const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                      const baseMonday = new Date(today0);
+                                      const bd = baseMonday.getDay() || 7;
+                                      baseMonday.setDate(baseMonday.getDate() - bd + 1);
+                                      const diffWeeks = Math.round((w - baseMonday) / (7*24*60*60*1000));
+                                      setWeekOffset(diffWeeks);
+                                      setView('week');
+                                    }
+                                  }}
+                                  className="absolute left-1 right-1 text-xs text-slate-500 hover:text-rose-600 text-left px-1.5 py-0.5"
+                                  style={{ top: 28 + laneCap * 22 }}
+                                >
+                                  +{overflow[di]} 更多
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {bars.filter(b => b.lane < laneCap).map((bar, idx) => {
+                          const style = getStyle(bar.ev.category);
+                          const missed = isMissed(bar.ev);
+                          const top = 28 + bar.lane * 22;
+                          const leftPct = (bar.startCol / 7) * 100;
+                          const widthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+                          let cls = '';
+                          if (missed) cls = 'bg-slate-200 text-slate-400 line-through';
+                          else if (bar.ev.completed) cls = `${style.deep} ${style.deepText}`;
+                          else cls = `${style.barLight} ${style.text}`;
+                          return (
+                            <button
+                              key={`${bar.ev.id}-${idx}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isMobile) {
+                                  const targetDate = new Date(bar.ev.date);
+                                  setSelectedDay(targetDate);
+                                  setView('day');
+                                } else {
+                                  setEditing({ ...bar.ev });
+                                }
+                              }}
+                              className={`absolute rounded text-xs font-medium px-1.5 py-0.5 truncate text-left ${cls}`}
+                              style={{
+                                top,
+                                left: `calc(${leftPct}% + 4px)`,
+                                width: `calc(${widthPct}% - 8px)`,
+                                height: 18,
+                              }}
+                              title={bar.ev.title}
+                            >
+                              {bar.ev.completed && '✓ '}
+                              {bar.startCol === bar.endCol && (
+                                <span className="opacity-60 mr-1">{formatTime(bar.ev.start)}</span>
+                              )}
+                              {bar.ev.title}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="bg-white border-t border-slate-200 px-3 py-2 flex items-center gap-3 text-xs text-slate-600 shrink-0 flex-wrap">
+            {categories.map(c => (
+              <div key={c.id} className="flex items-center gap-1.5">
+                <div className={`w-2.5 h-2.5 rounded-full ${COLOR_PALETTE[c.color].dot}`}></div>
+                <span>{c.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {editing && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
+              onClick={() => setEditing(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h2 className="text-lg font-semibold text-slate-800">
+                    {editing.id == null ? '新建事项' : '编辑事项'}
+                  </h2>
+                  <button onClick={() => setEditing(null)} className="p-1 hover:bg-slate-100 rounded-md">
+                    <X className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+
+                <div className="px-5 pb-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 block">事项名称</label>
+                    <input autoFocus className={inputCls}
+                      value={editing.title}
+                      onChange={e => setEditing({...editing, title: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-slate-500">分类</label>
+                      <button onClick={() => setManagingCats(true)}
+                        className="text-xs text-rose-500 hover:text-rose-700">+ 管理分类</button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {categories.map(c => {
+                        const selected = editing.category === c.id;
+                        const style = COLOR_PALETTE[c.color];
+                        return (
+                          <button key={c.id}
+                            onClick={() => setEditing({...editing, category: c.id})}
+                            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-sm transition ${
+                              selected ? `${style.light} ${style.text} ${style.border} ring-2 ring-offset-1 ring-rose-300 font-medium`
+                                       : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}>
+                            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`}></div>
+                            <span className="truncate">{c.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">开始日期</label>
+                      <input type="date" className={inputCls}
+                        value={editing.date}
+                        onChange={e => {
+                          const newDate = e.target.value;
+                          const newEnd = editing.endDate < newDate ? newDate : editing.endDate;
+                          setEditing({...editing, date: newDate, endDate: newEnd});
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">结束日期</label>
+                      <input type="date" className={inputCls}
+                        min={editing.date}
+                        value={editing.endDate}
+                        onChange={e => setEditing({...editing, endDate: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">开始时间</label>
+                      <input type="time" className={inputCls}
+                        value={floatToTimeStr(editing.start)}
+                        onChange={e => setEditing({...editing, start: timeStrToFloat(e.target.value)})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">结束时间</label>
+                      <input type="time" className={inputCls}
+                        value={floatToTimeStr(editing.end)}
+                        onChange={e => setEditing({...editing, end: timeStrToFloat(e.target.value)})}
+                      />
+                    </div>
+                  </div>
+
+                  {editing.endDate !== editing.date && (
+                    <div className="text-xs text-slate-500 bg-slate-50 rounded-md px-3 py-1.5 border border-slate-200">
+                      跨天事项：{editing.date} {floatToTimeStr(editing.start)} → {editing.endDate} {floatToTimeStr(editing.end)}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <span>地点</span>
+                    </label>
+                    <input className={inputCls}
+                      value={editing.location}
+                      onChange={e => setEditing({...editing, location: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <span>和谁</span>
+                    </label>
+                    <input className={inputCls}
+                      value={editing.who}
+                      onChange={e => setEditing({...editing, who: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-5 py-3 bg-slate-50 rounded-b-2xl">
+                  {editing.id != null ? (
+                    <button onClick={deleteEvent}
+                      className="flex items-center gap-1 text-rose-500 hover:text-rose-700 text-sm px-2 py-1.5 rounded-md hover:bg-rose-50">
+                      <Trash2 className="w-4 h-4" /> 删除
+                    </button>
+                  ) : <div />}
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditing(null)}
+                      className="px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-200 rounded-lg">取消</button>
+                    <button onClick={saveEvent} disabled={!editing.title.trim()}
+                      className="px-4 py-1.5 text-sm bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                      保存
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-}
+          )}
 
-// 编辑面板
-function renderEditor() {
-  const e = state.editing;
-  return `
-    <div class="fixed inset-0 z-40 bg-slate-900/40 flex items-end sm:items-center justify-center" onclick="closeEditor()">
-      <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl p-5" onclick="event.stopPropagation()">
-        <div class="text-lg font-semibold mb-4 text-slate-800">${e._isNew?'新建事件':'编辑事件'}</div>
-
-        <label class="text-xs text-slate-500">标题</label>
-        <input id="ed_title" type="text" value="${escape(e.title)}" placeholder="做点什么?"
-               class="w-full border border-slate-300 rounded-lg px-3 py-2 mt-1 mb-3 focus:outline-none focus:border-indigo-500" />
-
-        <label class="text-xs text-slate-500">日期</label>
-        <input id="ed_date" type="date" value="${e.date}"
-               class="w-full border border-slate-300 rounded-lg px-3 py-2 mt-1 mb-3 focus:outline-none focus:border-indigo-500" />
-
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="text-xs text-slate-500">开始</label>
-            <input id="ed_start" type="time" value="${minToTime(e.start)}"
-                   class="w-full border border-slate-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="text-xs text-slate-500">结束</label>
-            <input id="ed_end" type="time" value="${minToTime(e.end)}"
-                   class="w-full border border-slate-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:border-indigo-500" />
-          </div>
+          {managingCats && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
+              onClick={() => setManagingCats(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h2 className="text-lg font-semibold text-slate-800">管理分类</h2>
+                  <button onClick={() => setManagingCats(false)} className="p-1 hover:bg-slate-100 rounded-md">
+                    <X className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+                <div className="px-5 pb-3 space-y-2 max-h-96 overflow-y-auto">
+                  {categories.map(c => {
+                    const style = COLOR_PALETTE[c.color];
+                    return (
+                      <div key={c.id} className={`border rounded-lg p-3 ${style.light} ${style.border}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-3 h-3 rounded-full ${style.dot} shrink-0`}></div>
+                          <input value={c.name}
+                            onChange={e => updateCat(c.id, { name: e.target.value })}
+                            className="flex-1 px-2 py-1 bg-white/70 border border-white rounded text-sm focus:outline-none focus:ring-1 focus:ring-rose-300"
+                          />
+                          <button onClick={() => deleteCat(c.id)}
+                            disabled={categories.length <= 1}
+                            className="text-rose-500 hover:bg-white/50 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-10 gap-1.5">
+                          {PALETTE_KEYS.map(ck => {
+                            const ps = COLOR_PALETTE[ck];
+                            const selected = c.color === ck;
+                            return (
+                              <button key={ck} onClick={() => updateCat(c.id, { color: ck })}
+                                className={`aspect-square rounded-full ${ps.dot} transition ${
+                                  selected ? 'ring-2 ring-offset-2 ring-slate-700 scale-110' : 'hover:scale-110'
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button onClick={addCat}
+                    className="w-full border-2 border-dashed border-slate-300 rounded-lg py-2.5 text-slate-500 hover:bg-slate-50 hover:border-slate-400 text-sm flex items-center justify-center gap-1 transition">
+                    <Plus className="w-4 h-4" /> 添加新分类
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+      );
+    }
 
-        <label class="text-xs text-slate-500">颜色</label>
-        <div class="flex gap-2 mt-2 mb-5">
-          ${Object.keys(COLORS).map(k => `
-            <button onclick="state.editing.color='${k}'; render()"
-                    class="w-8 h-8 rounded-full ${COLORS[k].dot} ${e.color===k?'ring-2 ring-offset-2 ring-slate-700':''}"></button>
-          `).join('')}
-        </div>
-
-        <div class="flex gap-2">
-          ${!e._isNew ? `<button onclick="deleteEditor()" class="flex-1 py-2.5 rounded-lg bg-rose-50 text-rose-600 font-medium hover:bg-rose-100">删除</button>` : ''}
-          <button onclick="closeEditor()" class="flex-1 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200">取消</button>
-          <button onclick="commitEditor()" class="flex-1 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700">保存</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-function commitEditor() {
-  const t = document.getElementById('ed_title').value;
-  const d = document.getElementById('ed_date').value;
-  const s = document.getElementById('ed_start').value;
-  const en = document.getElementById('ed_end').value;
-  const toMin = (str) => { const [h,m] = str.split(':').map(Number); return h*60+m; };
-  state.editing.title = t;
-  state.editing.date = d;
-  state.editing.start = toMin(s);
-  state.editing.end = toMin(en);
-  delete state.editing._isNew;
-  saveEditor();
-}
-
-function escape(s) {
-  return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-}
-
-// ---------- 启动 ----------
-window.openEditor = openEditor;
-window.closeEditor = closeEditor;
-window.commitEditor = commitEditor;
-window.deleteEditor = deleteEditor;
-window.newEventOn = newEventOn;
-window.toggleDone = toggleDone;
-window.goPrev = goPrev;
-window.goNext = goNext;
-window.goToday = goToday;
-window.setView = setView;
-window.onEventDragStart = onEventDragStart;
-window.state = state;
-window.render = render;
-
-render();
-</script>
+    ReactDOM.createRoot(document.getElementById('root')).render(<PlannerApp />);
+  </script>
 </body>
 </html>
