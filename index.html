@@ -77,8 +77,8 @@ export default function PlannerApp() {
   const [view, setView] = useState('week');
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
-  const [selectedDay, setSelectedDay] = useState(today);   // 🆕 日视图当前日期
-  const [isMobile, setIsMobile] = useState(false);          // 🆕 是否手机端
+  const [selectedDay, setSelectedDay] = useState(today);
+  const [isMobile, setIsMobile] = useState(false);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [events, setEvents] = useState(initialEvents);
   const [editing, setEditing] = useState(null);
@@ -89,10 +89,9 @@ export default function PlannerApp() {
   const justDraggedRef = useRef(false);
   const gridRef = useRef(null);
   const weekStartRef = useRef(null);
-  const viewRef = useRef(view);                             // 🆕
-  const selectedDayStrRef = useRef(formatDate(selectedDay));// 🆕
+  const viewRef = useRef(view);
+  const selectedDayStrRef = useRef(formatDate(selectedDay));
 
-  // 🆕 检测移动端
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -100,12 +99,10 @@ export default function PlannerApp() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // 🆕 移动端默认月视图（如果当前是周视图就切到月）
   useEffect(() => {
     if (isMobile && view === 'week') setView('month');
-  }, [isMobile]); // eslint-disable-line
+  }, [isMobile]);
 
-  // 🆕 同步 ref
   useEffect(() => { viewRef.current = view; });
   useEffect(() => { selectedDayStrRef.current = formatDate(selectedDay); });
 
@@ -168,7 +165,7 @@ export default function PlannerApp() {
     return { total, done };
   }, [events, weekStart]);
 
-  const isMissed = (ev, dayStr) => {
+  const isMissed = (ev) => {
     if (ev.completed) return false;
     const endStr = ev.endDate || ev.date;
     const d = new Date(endStr);
@@ -188,7 +185,6 @@ export default function PlannerApp() {
       hour = Math.round(hour * 4) / 4;
       hour = Math.max(START_HOUR, Math.min(END_HOUR, hour));
 
-      // 🆕 日视图只有 1 列
       if (viewRef.current === 'day') {
         return { date: selectedDayStrRef.current, hour, dayIdx: 0 };
       }
@@ -377,11 +373,9 @@ export default function PlannerApp() {
   const hours = Array.from({length: END_HOUR-START_HOUR+1}, (_,i) => START_HOUR+i);
   const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400";
 
-  // 🆕 日/周共享渲染：决定要展示几天
   const isTimelineView = view === 'week' || view === 'day';
   const timelineDays = view === 'day' ? [selectedDay] : weekDays;
 
-  // 🆕 头部标题 & 导航行为按视图分流
   const headerLabel = (() => {
     if (view === 'day') {
       const wd = (selectedDay.getDay() || 7) - 1;
@@ -412,7 +406,6 @@ export default function PlannerApp() {
     ? formatDate(selectedDay) === todayStr
     : view === 'week' ? weekOffset === 0 : monthOffset === 0;
 
-  // 🆕 月视图点某天的处理：手机跳日视图，桌面新建事件
   const onMonthDayTap = (d) => {
     if (isMobile) {
       setSelectedDay(d);
@@ -426,7 +419,6 @@ export default function PlannerApp() {
     <div className="w-full h-screen bg-slate-50 flex flex-col font-sans"
       style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
                userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
-      {/* Header */}
       <div className="bg-white border-b border-slate-200 px-3 py-3 flex items-center justify-between shrink-0 gap-2">
         <div className="flex items-center gap-1 min-w-0">
           <button onClick={goPrev} className="p-1.5 hover:bg-slate-100 rounded-md transition shrink-0">
@@ -444,7 +436,6 @@ export default function PlannerApp() {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* 🆕 视图切换：手机 月/日，桌面 周/月 */}
           <div className="flex bg-slate-100 rounded-full p-0.5">
             {isMobile ? (
               <>
@@ -490,7 +481,6 @@ export default function PlannerApp() {
         </div>
       </div>
 
-      {/* === WEEK / DAY VIEW (统一渲染) === */}
       {isTimelineView && (
         <>
           <div className="bg-white border-b border-slate-200 flex shrink-0">
@@ -542,7 +532,7 @@ export default function PlannerApp() {
                       const top = (seg.start - START_HOUR) * HOUR_HEIGHT;
                       const height = (seg.end - seg.start) * HOUR_HEIGHT;
                       const style = getStyle(ev.category);
-                      const missed = isMissed(ev, dStr);
+                      const missed = isMissed(ev);
                       const isBeingDragged = dragInfo?.isDragging && dragInfo.id === ev.id;
 
                       let cardCls = '', circleCls = '';
@@ -638,7 +628,6 @@ export default function PlannerApp() {
         </>
       )}
 
-      {/* === MONTH VIEW === */}
       {view === 'month' && (
         <>
           <div className="bg-white border-b border-slate-200 grid grid-cols-7 shrink-0">
@@ -684,7 +673,6 @@ export default function PlannerApp() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // 🆕 手机点 +N 直接跳到该日的"日视图"；桌面跳到那一周的周视图
                                 if (isMobile) {
                                   setSelectedDay(d);
                                   setView('day');
@@ -723,7 +711,6 @@ export default function PlannerApp() {
                           key={`${bar.ev.id}-${idx}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // 🆕 手机点事件块 → 跳到那天的日视图；桌面 → 直接编辑
                             if (isMobile) {
                               const targetDate = new Date(bar.ev.date);
                               setSelectedDay(targetDate);
@@ -757,7 +744,6 @@ export default function PlannerApp() {
         </>
       )}
 
-      {/* Footer */}
       <div className="bg-white border-t border-slate-200 px-3 py-2 flex items-center gap-3 text-xs text-slate-600 shrink-0 flex-wrap">
         {categories.map(c => (
           <div key={c.id} className="flex items-center gap-1.5">
@@ -767,7 +753,6 @@ export default function PlannerApp() {
         ))}
       </div>
 
-      {/* === Edit / New event modal === */}
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
           onClick={() => setEditing(null)}>
@@ -903,7 +888,6 @@ export default function PlannerApp() {
         </div>
       )}
 
-      {/* === Manage Categories Modal === */}
       {managingCats && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
           onClick={() => setManagingCats(false)}>
