@@ -46,10 +46,10 @@
     /* ===================== App ===================== */
 
     const HOUR_HEIGHT = 90;
-    const START_HOUR = 0;        // ← 改：全天起点
-    const END_HOUR = 23;         // ← 改：全天终点（含 23:00 那一格 → 24:00）
+    const START_HOUR = 0;
+    const END_HOUR = 23;
     const TIME_COL_WIDTH = 56;
-    const DEFAULT_SCROLL_HOUR = 7; // ← 默认滚动到的位置
+    const DEFAULT_SCROLL_HOUR = 7;
 
     const COLOR_PALETTE = {
       rose:    { light: 'bg-rose-50',    border: 'border-rose-300',    text: 'text-rose-700',    deep: 'bg-rose-200',    deepText: 'text-rose-900',    deepBorder: 'border-rose-400',    dot: 'bg-rose-400',    barLight: 'bg-rose-100' },
@@ -161,18 +161,14 @@
       }, [weekOffset]);
       useEffect(() => { weekStartRef.current = weekStart; });
 
-      // 进入时间轴视图时，默认滚动到 7:00 附近
       useEffect(() => {
         if (view !== 'week' && view !== 'day') return;
         const grid = gridRef.current;
         if (!grid) return;
-        // 滚动到 DEFAULT_SCROLL_HOUR
         const target = (DEFAULT_SCROLL_HOUR - START_HOUR) * HOUR_HEIGHT;
-        // 用 rAF 等布局完成
         requestAnimationFrame(() => { grid.scrollTop = target; });
       }, [view]);
 
-      // 手机端日视图：左右滑动屏幕切日期
       useEffect(() => {
         if (!(isMobile && view === 'day')) return;
         const grid = gridRef.current;
@@ -496,8 +492,7 @@
 
       const headerLabel = (() => {
         if (view === 'day') {
-          const wd = (selectedDay.getDay() || 7) - 1;
-          return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日 · 周${dayNames[wd]}`;
+          return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日`;
         }
         if (view === 'week') return `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月`;
         return `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
@@ -538,7 +533,6 @@
           style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
                    userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
           <div className="bg-white border-b border-slate-200 px-3 py-3 flex items-center justify-between shrink-0 gap-2">
-            {/* ↓↓↓ 改：箭头组保持单行，回到今天移到箭头右侧 ↓↓↓ */}
             <div className="flex items-center gap-1 min-w-0">
               <button onClick={goPrev} className="p-1.5 hover:bg-slate-100 rounded-md transition shrink-0">
                 <ChevronLeft className="w-5 h-5 text-slate-600" />
@@ -550,7 +544,7 @@
               {!offsetIsZero && (
                 <button
                   onClick={goToday}
-                  className="ml-1 text-xs px-2 py-1 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100 transition shrink-0"
+                  className="ml-1 text-xs px-2 py-1 rounded-full bg-sky-50 text-sky-600 hover:bg-sky-100 transition shrink-0"
                 >
                   回到今天
                 </button>
