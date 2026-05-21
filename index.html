@@ -74,6 +74,7 @@
     const DEFAULT_SCROLL_HOUR = 7;
 
     const STORAGE_KEY = 'planner_data_v1';
+    const STORAGE_VERSION = 2;
     const THEME_KEY = 'planner_theme';
     const SYNC_TOKEN_KEY = 'planner_gist_token';
     const SYNC_GIST_ID_KEY = 'planner_gist_id';
@@ -106,12 +107,12 @@
     const PALETTE_KEYS = Object.keys(COLOR_PALETTE);
 
     const DEFAULT_CATEGORIES = [
-      { id: 'dance',   name: '跳舞', color: 'pink' },
-      { id: 'fitness', name: '健身', color: 'sky' },
-      { id: 'massage', name: '按摩', color: 'violet' },
-      { id: 'meal',    name: '约饭', color: 'amber' },
-      { id: 'fun',     name: '玩',   color: 'emerald' },
-      { id: 'other',   name: '其他', color: 'slate' },
+      { id: 'dance',   name: '跳舞', color: 'pink',    updatedAt: 0 },
+      { id: 'fitness', name: '健身', color: 'sky',     updatedAt: 0 },
+      { id: 'massage', name: '按摩', color: 'violet',  updatedAt: 0 },
+      { id: 'meal',    name: '约饭', color: 'amber',   updatedAt: 0 },
+      { id: 'fun',     name: '玩',   color: 'emerald', updatedAt: 0 },
+      { id: 'other',   name: '其他', color: 'slate',   updatedAt: 0 },
     ];
 
     /* ===== 工具 ===== */
@@ -121,6 +122,23 @@
     const timeStrToFloat = (s) => { const [h,m] = s.split(':').map(Number); return h + m/60; };
     const dayNames = ['一','二','三','四','五','六','日'];
     const monthDayLabels = ['周一','周二','周三','周四','周五','周六','周日'];
+
+    /* ===== 同步合并工具 ===== */
+    const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stamp = (obj) => ({ ...obj, updatedAt: Date.now() });
+
+    function mergeList(localArr = [], remoteArr = []) {
+      const map = new Map();
+      for (const it of localArr)  map.set(String(it.id), it);
+      for (const it of remoteArr) {
+        const key = String(it.id);
+        const cur = map.get(key);
+        if (!cur || (it.updatedAt || 0) > (cur.updatedAt || 0)) {
+          map.set(key, it);
+        }
+      }
+      return Array.from(map.values());
+    }
 
     const getSegment = (ev, dayStr) => {
       const startStr = ev.date;
@@ -156,7 +174,7 @@
       } catch { return false; }
     };
 
-    /* ===== Gist 同步 ===== */
+    /* ===== Gist API ===== */
     async function gistFetch(token, gistId) {
       const res = await fetch(`https://api.github.com/gists/${gistId}`, {
         headers: {
@@ -226,14 +244,29 @@
       const [selectedDay, setSelectedDay] = useState(today);
       const [isMobile, setIsMobile] = useState(false);
 
-      const [categories, setCategories] = useState(() => {
+      /* ===== 数据：events / categories（不含已删除） + 墓碑 ===== */
+      const initial = useMemo(() => {
         const s = loadStored();
-        return (s && Array.isArray(s.categories) && s.categories.length) ? s.categories : DEFAULT_CATEGORIES;
-      });
-      const [events, setEvents] = useState(() => {
-        const s = loadStored();
-        return (s && Array.isArray(s.events)) ? s.events : [];
-      });
+        if (!s) {
+          return {
+            events: [],
+            categories: DEFAULT_CATEGORIES,
+            eventTombs: [],
+            categoryTombs: [],
+          };
+        }
+        const events = Array.isArray(s.events) ? s.events : [];
+        const categories = (Array.isArray(s.categories) && s.categories.length)
+          ? s.categories : DEFAULT_CATEGORIES;
+        const eventTombs = Array.isArray(s.eventTombs) ? s.eventTombs : [];
+        const categoryTombs = Array.isArray(s.categoryTombs) ? s.categoryTombs : [];
+        return { events, categories, eventTombs, categoryTombs };
+      }, []);
+
+      const [categories, setCategories] = useState(initial.categories);
+      const [events, setEvents] = useState(initial.events);
+      const [eventTombs, setEventTombs] = useState(initial.eventTombs);
+      const [categoryTombs, setCategoryTombs] = useState(initial.categoryTombs);
       const [darkMode, setDarkMode] = useState(loadTheme);
 
       const [editing, setEditing] = useState(null);
@@ -277,7 +310,7 @@
       const initialSyncDoneRef = useRef(false);
       const syncTokenRef = useRef(syncToken);
       const syncGistIdRef = useRef(syncGistId);
-      const isPushingRef = useRef(false);
+      const isSyncingRef = useRef(false);
 
       useEffect(() => { syncTokenRef.current = syncToken; });
       useEffect(() => { syncGistIdRef.current = syncGistId; });
@@ -297,29 +330,87 @@
         return () => window.removeEventListener('keydown', onKey);
       }, [clipboardEvent]);
 
-      /* ===== 同步：推送 ===== */
-      const doPush = useCallback(async () => {
+      /* ===== 同步：拉取 + 逐条合并 + 推送 ===== */
+      const doSync = useCallback(async (opts = {}) => {
         const token = syncTokenRef.current;
         const gistId = syncGistIdRef.current;
         if (!token || !gistId) return;
-        if (isPushingRef.current) return;
-        isPushingRef.current = true;
+        if (isSyncingRef.current) return;
+        isSyncingRef.current = true;
         setSyncStatus('syncing');
         try {
-          const stored = loadStored();
-          if (!stored) { isPushingRef.current = false; setSyncStatus('synced'); return; }
-          await gistUpdate(token, gistId, stored);
+          // 1. 拉远端
+          let remote = null;
+          try {
+            remote = await gistFetch(token, gistId);
+          } catch (err) {
+            // 如果就是 404 之类，直接抛出；其它情况也抛出
+            throw err;
+          }
+          const remoteEvents = Array.isArray(remote?.events) ? remote.events : [];
+          const remoteCats = Array.isArray(remote?.categories) ? remote.categories : [];
+          const remoteEvTombs = Array.isArray(remote?.eventTombs) ? remote.eventTombs : [];
+          const remoteCatTombs = Array.isArray(remote?.categoryTombs) ? remote.categoryTombs : [];
+
+          // 2. 读最新本地（避免 state 滞后）
+          const local = loadStored() || {};
+          const localEvents = Array.isArray(local.events) ? local.events : [];
+          const localCats = (Array.isArray(local.categories) && local.categories.length)
+            ? local.categories : DEFAULT_CATEGORIES;
+          const localEvTombs = Array.isArray(local.eventTombs) ? local.eventTombs : [];
+          const localCatTombs = Array.isArray(local.categoryTombs) ? local.categoryTombs : [];
+
+          // 3. 合并（live + tombstone 一起合并，按 id 比 updatedAt）
+          const allEv = mergeList(
+            [...localEvents, ...localEvTombs],
+            [...remoteEvents, ...remoteEvTombs]
+          );
+          const allCat = mergeList(
+            [...localCats, ...localCatTombs],
+            [...remoteCats, ...remoteCatTombs]
+          );
+
+          // 4. 分拆
+          const newEvents = allEv.filter(e => !e.deleted);
+          const newEvTombs = allEv.filter(e => e.deleted);
+          let newCats = allCat.filter(c => !c.deleted);
+          const newCatTombs = allCat.filter(c => c.deleted);
+          if (newCats.length === 0) newCats = DEFAULT_CATEGORIES;
+
+          // 5. 构造 payload 并推送
+          const payload = {
+            events: newEvents,
+            categories: newCats,
+            eventTombs: newEvTombs,
+            categoryTombs: newCatTombs,
+            savedAt: new Date().toISOString(),
+            version: STORAGE_VERSION,
+          };
+          await gistUpdate(token, gistId, payload);
+
+          // 6. 应用到本地
+          skipNextPushRef.current = true;
+          setEvents(newEvents);
+          setCategories(newCats);
+          setEventTombs(newEvTombs);
+          setCategoryTombs(newCatTombs);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          } catch {}
+
           setSyncStatus('synced');
-          setSyncError(null);
           setLastSyncAt(new Date());
+          setSyncError(null);
+          if (opts.notify) showToast('已同步');
         } catch (err) {
-          console.error('Push failed:', err);
+          console.error('Sync failed:', err);
           setSyncStatus('error');
           setSyncError(err.message);
+          if (opts.notify) showToast('同步失败：' + err.message);
         } finally {
-          isPushingRef.current = false;
+          isSyncingRef.current = false;
         }
-      }, []);
+      }, [showToast]);
 
       /* ===== 持久化：写入 + 触发同步 ===== */
       useEffect(() => {
@@ -327,7 +418,8 @@
         const savedAt = new Date().toISOString();
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            events, categories, savedAt, version: 1,
+            events, categories, eventTombs, categoryTombs,
+            savedAt, version: STORAGE_VERSION,
           }));
         } catch (e) {}
 
@@ -336,64 +428,15 @@
 
         if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
         setSyncStatus('pending');
-        pushTimerRef.current = setTimeout(() => { doPush(); }, PUSH_DEBOUNCE_MS);
-      }, [events, categories, doPush]);
-
-      /* ===== 同步：拉取 ===== */
-      const doPull = useCallback(async (opts = {}) => {
-        const token = syncTokenRef.current;
-        const gistId = syncGistIdRef.current;
-        if (!token || !gistId) return;
-        setSyncStatus('syncing');
-        try {
-          const remote = await gistFetch(token, gistId);
-          const local = loadStored();
-          const remoteTime = remote?.savedAt ? new Date(remote.savedAt).getTime() : 0;
-          const localTime = local?.savedAt ? new Date(local.savedAt).getTime() : 0;
-
-          if (remoteTime > localTime) {
-            skipNextPushRef.current = true;
-            const remoteCats = Array.isArray(remote.categories) && remote.categories.length
-              ? remote.categories : DEFAULT_CATEGORIES;
-            const remoteEvents = Array.isArray(remote.events) ? remote.events : [];
-            setCategories(remoteCats);
-            setEvents(remoteEvents);
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                events: remoteEvents, categories: remoteCats,
-                savedAt: remote.savedAt, version: 1,
-              }));
-            } catch {}
-            setSyncStatus('synced');
-            setLastSyncAt(new Date());
-            setSyncError(null);
-            if (opts.notify) showToast('已从云端拉取最新数据');
-          } else if (localTime > remoteTime) {
-            await gistUpdate(token, gistId, local);
-            setSyncStatus('synced');
-            setLastSyncAt(new Date());
-            setSyncError(null);
-            if (opts.notify) showToast('本地数据较新，已推送到云端');
-          } else {
-            setSyncStatus('synced');
-            setLastSyncAt(new Date());
-            setSyncError(null);
-            if (opts.notify) showToast('已是最新');
-          }
-        } catch (err) {
-          console.error('Pull failed:', err);
-          setSyncStatus('error');
-          setSyncError(err.message);
-          if (opts.notify) showToast('同步失败：' + err.message);
-        }
-      }, [showToast]);
+        pushTimerRef.current = setTimeout(() => { doSync(); }, PUSH_DEBOUNCE_MS);
+      }, [events, categories, eventTombs, categoryTombs, doSync]);
 
       /* ===== 首次加载：拉一次 ===== */
       useEffect(() => {
         if (initialSyncDoneRef.current) return;
         initialSyncDoneRef.current = true;
         if (syncToken && syncGistId) {
-          doPull();
+          doSync();
         } else if (!syncToken) {
           const skipped = (() => {
             try { return localStorage.getItem(SYNC_SKIPPED_KEY) === '1'; } catch { return false; }
@@ -558,17 +601,22 @@
       };
 
       const toggleComplete = (id) => {
-        setEvents(prev => prev.map(e => e.id === id ? { ...e, completed: !e.completed } : e));
+        setEvents(prev => prev.map(e => e.id === id ? stamp({ ...e, completed: !e.completed }) : e));
       };
 
       const deleteEventById = (id) => {
         const ev = events.find(e => e.id === id);
         if (!ev) return;
         setEvents(prev => prev.filter(e => e.id !== id));
+        setEventTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
         showToast(`已删除"${ev.title}"`, {
           duration: 5000,
           undo: () => {
-            setEvents(prev => [...prev, ev]);
+            setEvents(prev => [...prev, stamp(ev)]);
+            setEventTombs(prev => prev.filter(t => t.id !== id));
             setToast(null);
           },
         });
@@ -589,16 +637,16 @@
           newEnd = END_HOUR + 1;
           newStart = Math.max(START_HOUR, newEnd - dur);
         }
-        const newId = Math.max(0, ...events.map(e => e.id)) + 1;
-        setEvents(prev => [...prev, {
+        const newEv = stamp({
           ...src,
-          id: newId,
+          id: genId(),
           date: dateStr,
           endDate: dateStr,
           start: newStart,
           end: newEnd,
           completed: false,
-        }]);
+        });
+        setEvents(prev => [...prev, newEv]);
         showToast(`已粘贴"${src.title}"到 ${dateStr}`);
       };
 
@@ -658,7 +706,7 @@
                 newEnd = newStart + duration;
               }
               setEvents(prev => prev.map(ev =>
-                ev.id === s.id ? { ...ev, date: target.date, endDate: target.date, start: newStart, end: newEnd } : ev
+                ev.id === s.id ? stamp({ ...ev, date: target.date, endDate: target.date, start: newStart, end: newEnd }) : ev
               ));
             }
             justDraggedRef.current = true;
@@ -731,22 +779,31 @@
         if (editing.endDate < editing.date) return;
         if (editing.endDate === editing.date && editing.end <= editing.start) return;
         if (editing.id == null) {
-          const newId = Math.max(0, ...events.map(e => e.id)) + 1;
-          setEvents([...events, { ...editing, id: newId }]);
+          const newEv = stamp({ ...editing, id: genId() });
+          setEvents([...events, newEv]);
         } else {
-          setEvents(events.map(e => e.id === editing.id ? editing : e));
+          setEvents(events.map(e => e.id === editing.id ? stamp(editing) : e));
         }
         setEditing(null);
       };
 
       const deleteEventFromEditor = () => {
-        const ev = events.find(e => e.id === editing.id);
-        setEvents(events.filter(e => e.id !== editing.id));
+        const id = editing.id;
+        const ev = events.find(e => e.id === id);
+        setEvents(events.filter(e => e.id !== id));
+        setEventTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
         setEditing(null);
         if (ev) {
           showToast(`已删除"${ev.title}"`, {
             duration: 5000,
-            undo: () => { setEvents(prev => [...prev, ev]); setToast(null); },
+            undo: () => {
+              setEvents(prev => [...prev, stamp(ev)]);
+              setEventTombs(prev => prev.filter(t => t.id !== id));
+              setToast(null);
+            },
           });
         }
       };
@@ -770,23 +827,30 @@
         }
       };
 
-      const updateCat = (id, patch) => setCategories(cs => cs.map(c => c.id === id ? { ...c, ...patch } : c));
+      const updateCat = (id, patch) => setCategories(cs => cs.map(c => c.id === id ? stamp({ ...c, ...patch }) : c));
       const deleteCat = (id) => {
         if (categories.length <= 1) return;
         const fb = categories.find(c => c.id !== id).id;
         setCategories(cs => cs.filter(c => c.id !== id));
-        setEvents(es => es.map(e => e.category === id ? { ...e, category: fb } : e));
+        setCategoryTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
+        setEvents(es => es.map(e => e.category === id ? stamp({ ...e, category: fb }) : e));
       };
       const addCat = () => {
-        const newId = `cat_${Date.now()}`;
+        const newId = genId();
         const used = new Set(categories.map(c => c.color));
         const avail = PALETTE_KEYS.find(k => !used.has(k)) || 'slate';
-        setCategories(cs => [...cs, { id: newId, name: '新分类', color: avail }]);
+        setCategories(cs => [...cs, stamp({ id: newId, name: '新分类', color: avail })]);
       };
 
       const handleExport = () => {
         try {
-          const data = { events, categories, exportedAt: new Date().toISOString(), version: 1 };
+          const data = {
+            events, categories, eventTombs, categoryTombs,
+            exportedAt: new Date().toISOString(), version: STORAGE_VERSION,
+          };
           const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -822,8 +886,14 @@
               confirmText: '导入并覆盖',
               danger: true,
               onConfirm: () => {
-                setEvents(data.events);
-                setCategories(data.categories);
+                // 导入时统一盖新时间戳，让本地数据"变新"，能正确推送到云端
+                const now = Date.now();
+                const stampedEvents = data.events.map(e => ({ ...e, updatedAt: now }));
+                const stampedCats = data.categories.map(c => ({ ...c, updatedAt: now }));
+                setEvents(stampedEvents);
+                setCategories(stampedCats);
+                setEventTombs(Array.isArray(data.eventTombs) ? data.eventTombs : []);
+                setCategoryTombs(Array.isArray(data.categoryTombs) ? data.categoryTombs : []);
                 setConfirmModal(null);
                 setShowSettings(false);
                 showToast('导入成功');
@@ -843,8 +913,14 @@
           confirmText: '确认清空',
           danger: true,
           onConfirm: () => {
+            // 清空时把所有现有 id 转为墓碑（这样云端也会被清空）
+            const now = Date.now();
+            const evTombs = events.map(e => ({ id: e.id, deleted: true, updatedAt: now }));
+            const catTombs = categories.map(c => ({ id: c.id, deleted: true, updatedAt: now }));
             setEvents([]);
-            setCategories(DEFAULT_CATEGORIES);
+            setCategories(DEFAULT_CATEGORIES.map(c => ({ ...c, updatedAt: now })));
+            setEventTombs(prev => mergeList(prev, evTombs));
+            setCategoryTombs(prev => mergeList(prev, catTombs));
             setConfirmModal(null);
             setShowSettings(false);
             showToast('已清空');
@@ -867,7 +943,10 @@
           if (gistId) {
             await gistFetch(token, gistId);
           } else {
-            const stored = loadStored() || { events, categories, savedAt: new Date().toISOString(), version: 1 };
+            const stored = loadStored() || {
+              events, categories, eventTombs, categoryTombs,
+              savedAt: new Date().toISOString(), version: STORAGE_VERSION,
+            };
             const newGist = await gistCreate(token, stored);
             finalGistId = newGist.id;
           }
@@ -883,7 +962,7 @@
           setSetupOpen(false);
           setSetupTokenInput('');
           setSetupGistIdInput('');
-          await doPull({ notify: true });
+          await doSync({ notify: true });
         } catch (err) {
           setSetupError(err.message);
         } finally {
@@ -923,7 +1002,7 @@
 
       const handleManualSync = () => {
         if (pushTimerRef.current) { clearTimeout(pushTimerRef.current); pushTimerRef.current = null; }
-        doPull({ notify: true });
+        doSync({ notify: true });
       };
 
       const handleCopyGistId = async () => {
