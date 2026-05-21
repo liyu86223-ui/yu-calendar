@@ -159,6 +159,67 @@
       }, [weekOffset]);
       useEffect(() => { weekStartRef.current = weekStart; });
 
+      // 手机端日视图：左右滑动屏幕切日期
+      useEffect(() => {
+        if (!(isMobile && view === 'day')) return;
+        const grid = gridRef.current;
+        if (!grid) return;
+
+        let startX = 0, startY = 0, startT = 0;
+        let tracking = false;
+        let decided = null; // 'h' | 'v' | null
+
+        const onStart = (e) => {
+          if (dragStateRef.current) return;
+          if (e.touches.length !== 1) return;
+          const t = e.touches[0];
+          startX = t.clientX;
+          startY = t.clientY;
+          startT = Date.now();
+          tracking = true;
+          decided = null;
+        };
+
+        const onMove = (e) => {
+          if (!tracking || decided) return;
+          const t = e.touches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+            decided = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+          }
+        };
+
+        const onEnd = (e) => {
+          if (!tracking) return;
+          tracking = false;
+          if (dragStateRef.current?.isDragging) return;
+          if (decided !== 'h') return;
+
+          const t = e.changedTouches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          const dt = Date.now() - startT;
+
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2 && dt < 600) {
+            const d = new Date(selectedDay);
+            d.setDate(d.getDate() + (dx < 0 ? 1 : -1));
+            setSelectedDay(d);
+          }
+        };
+
+        grid.addEventListener('touchstart', onStart, { passive: true });
+        grid.addEventListener('touchmove', onMove, { passive: true });
+        grid.addEventListener('touchend', onEnd);
+        grid.addEventListener('touchcancel', onEnd);
+        return () => {
+          grid.removeEventListener('touchstart', onStart);
+          grid.removeEventListener('touchmove', onMove);
+          grid.removeEventListener('touchend', onEnd);
+          grid.removeEventListener('touchcancel', onEnd);
+        };
+      }, [isMobile, view, selectedDay]);
+
       const weekDays = useMemo(() =>
         Array.from({length:7}, (_,i) => { const d = new Date(weekStart); d.setDate(d.getDate()+i); return d; }),
         [weekStart]
