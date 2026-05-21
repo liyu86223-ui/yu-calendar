@@ -1,9 +1,5 @@
-<!DOCTYPE html><html><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;"><meta http-equiv="x-dns-prefetch-control" content="off"><script src="https://puc.poecdn.net/authenticated_preview_page/standard.3ef2c256959faf5a756d.js"></script>
-    <meta charset="utf-8">
-    <title>Poe</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-  <script src="https://puc.poecdn.net/authenticated_preview_page/disableWebRTC.9710cebe07429a9e8e06.js"></script><meta name="x-poe-allow-downloads" content="true"><meta name="x-poe-datastore-behavior" content="disabled"><script src="https://puc.poecdn.net/authenticated_preview_page/tw.50ec1b0612bf5b0c30a5.js"></script><script src="https://puc.poecdn.net/authenticated_preview_page/deps.faccd16000d314dc16d5.js"></script><script src="https://puc.poecdn.net/authenticated_preview_page/exports.b0f0f482cdeb5302b0b9.js"></script><script src="https://puc.poecdn.net/authenticated_preview_page/renderer.75c73ae6b4235f62945a.js"></script><script>Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _react = require('react'); var _react2 = _interopRequireDefault(_react);
-var _lucidereact = require('lucide-react');
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Check, Sparkles, Plus, X, Trash2, Settings, MapPin, Users } from 'lucide-react';
 
 const HOUR_HEIGHT = 90;
 const START_HOUR = 7;
@@ -75,38 +71,59 @@ const getSegment = (ev, dayStr) => {
   };
 };
 
- function PlannerApp() {
+export default function PlannerApp() {
   const today = new Date(2026, 4, 20, 14, 30);
   const todayStr = formatDate(today);
-  const [view, setView] = _react.useState.call(void 0, 'week');
-  const [weekOffset, setWeekOffset] = _react.useState.call(void 0, 0);
-  const [monthOffset, setMonthOffset] = _react.useState.call(void 0, 0);
-  const [categories, setCategories] = _react.useState.call(void 0, DEFAULT_CATEGORIES);
-  const [events, setEvents] = _react.useState.call(void 0, initialEvents);
-  const [editing, setEditing] = _react.useState.call(void 0, null);
-  const [managingCats, setManagingCats] = _react.useState.call(void 0, false);
-  const [dragInfo, setDragInfo] = _react.useState.call(void 0, null);
+  const [view, setView] = useState('week');
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(today);   // 🆕 日视图当前日期
+  const [isMobile, setIsMobile] = useState(false);          // 🆕 是否手机端
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [events, setEvents] = useState(initialEvents);
+  const [editing, setEditing] = useState(null);
+  const [managingCats, setManagingCats] = useState(false);
+  const [dragInfo, setDragInfo] = useState(null);
 
-  const dragStateRef = _react.useRef.call(void 0, null);
-  const justDraggedRef = _react.useRef.call(void 0, false);
-  const gridRef = _react.useRef.call(void 0, null);
-  const weekStartRef = _react.useRef.call(void 0, null);
+  const dragStateRef = useRef(null);
+  const justDraggedRef = useRef(false);
+  const gridRef = useRef(null);
+  const weekStartRef = useRef(null);
+  const viewRef = useRef(view);                             // 🆕
+  const selectedDayStrRef = useRef(formatDate(selectedDay));// 🆕
 
-  const weekStart = _react.useMemo.call(void 0, () => {
+  // 🆕 检测移动端
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // 🆕 移动端默认月视图（如果当前是周视图就切到月）
+  useEffect(() => {
+    if (isMobile && view === 'week') setView('month');
+  }, [isMobile]); // eslint-disable-line
+
+  // 🆕 同步 ref
+  useEffect(() => { viewRef.current = view; });
+  useEffect(() => { selectedDayStrRef.current = formatDate(selectedDay); });
+
+  const weekStart = useMemo(() => {
     const d = new Date(today);
     const day = d.getDay() || 7;
     d.setDate(d.getDate() - day + 1 + weekOffset * 7);
     d.setHours(0,0,0,0);
     return d;
   }, [weekOffset]);
-  _react.useEffect.call(void 0, () => { weekStartRef.current = weekStart; });
+  useEffect(() => { weekStartRef.current = weekStart; });
 
-  const weekDays = _react.useMemo.call(void 0, () =>
+  const weekDays = useMemo(() =>
     Array.from({length:7}, (_,i) => { const d = new Date(weekStart); d.setDate(d.getDate()+i); return d; }),
     [weekStart]
   );
 
-  const monthInfo = _react.useMemo.call(void 0, () => {
+  const monthInfo = useMemo(() => {
     const base = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
     const first = new Date(base);
     const dow = first.getDay() || 7;
@@ -128,8 +145,8 @@ const getSegment = (ev, dayStr) => {
   const getCat = (id) => categories.find(c => c.id === id) || categories[0] || { name: '?', color: 'slate' };
   const getStyle = (catId) => COLOR_PALETTE[getCat(catId).color] || COLOR_PALETTE.slate;
 
-  const displayEvents = _react.useMemo.call(void 0, () => {
-    if (!_optionalChain([dragInfo, 'optionalAccess', _2 => _2.isDragging]) || !dragInfo.target) return events;
+  const displayEvents = useMemo(() => {
+    if (!dragInfo?.isDragging || !dragInfo.target) return events;
     return events.map(e => {
       if (e.id !== dragInfo.id) return e;
       const dur = e.end - e.start;
@@ -137,7 +154,7 @@ const getSegment = (ev, dayStr) => {
     });
   }, [events, dragInfo]);
 
-  const weekEventsCount = _react.useMemo.call(void 0, () => {
+  const weekEventsCount = useMemo(() => {
     let total = 0, done = 0;
     events.forEach(e => {
       const start = new Date(e.date);
@@ -159,7 +176,7 @@ const getSegment = (ev, dayStr) => {
     return d < today;
   };
 
-  _react.useEffect.call(void 0, () => {
+  useEffect(() => {
     const computeTarget = (clientX, clientY) => {
       const grid = gridRef.current;
       if (!grid) return null;
@@ -167,12 +184,18 @@ const getSegment = (ev, dayStr) => {
       const x = clientX - rect.left;
       const y = clientY - rect.top + grid.scrollTop;
       if (x < TIME_COL_WIDTH || x > rect.width) return null;
-      const dayWidth = (rect.width - TIME_COL_WIDTH) / 7;
-      const dayIdx = Math.floor((x - TIME_COL_WIDTH) / dayWidth);
-      if (dayIdx < 0 || dayIdx >= 7) return null;
       let hour = START_HOUR + y / HOUR_HEIGHT;
       hour = Math.round(hour * 4) / 4;
       hour = Math.max(START_HOUR, Math.min(END_HOUR, hour));
+
+      // 🆕 日视图只有 1 列
+      if (viewRef.current === 'day') {
+        return { date: selectedDayStrRef.current, hour, dayIdx: 0 };
+      }
+
+      const dayWidth = (rect.width - TIME_COL_WIDTH) / 7;
+      const dayIdx = Math.floor((x - TIME_COL_WIDTH) / dayWidth);
+      if (dayIdx < 0 || dayIdx >= 7) return null;
       const date = new Date(weekStartRef.current);
       date.setDate(date.getDate() + dayIdx);
       return { date: formatDate(date), hour, dayIdx };
@@ -273,7 +296,7 @@ const getSegment = (ev, dayStr) => {
     const dStr = formatDate(date);
     setEditing({
       id: null, title: '',
-      category: _optionalChain([categories, 'access', _3 => _3[0], 'optionalAccess', _4 => _4.id]) || 'other',
+      category: categories[0]?.id || 'other',
       date: dStr, endDate: dStr,
       start: startH, end: startH + 1,
       completed: false, location: '', who: '',
@@ -354,120 +377,173 @@ const getSegment = (ev, dayStr) => {
   const hours = Array.from({length: END_HOUR-START_HOUR+1}, (_,i) => START_HOUR+i);
   const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400";
 
-  const headerLabel = view === 'week'
-    ? `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月`
-    : `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
+  // 🆕 日/周共享渲染：决定要展示几天
+  const isTimelineView = view === 'week' || view === 'day';
+  const timelineDays = view === 'day' ? [selectedDay] : weekDays;
 
-  const goPrev = () => view === 'week' ? setWeekOffset(o => o-1) : setMonthOffset(o => o-1);
-  const goNext = () => view === 'week' ? setWeekOffset(o => o+1) : setMonthOffset(o => o+1);
-  const goToday = () => view === 'week' ? setWeekOffset(0) : setMonthOffset(0);
-  const offsetIsZero = view === 'week' ? weekOffset === 0 : monthOffset === 0;
+  // 🆕 头部标题 & 导航行为按视图分流
+  const headerLabel = (() => {
+    if (view === 'day') {
+      const wd = (selectedDay.getDay() || 7) - 1;
+      return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日 · 周${dayNames[wd]}`;
+    }
+    if (view === 'week') return `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月`;
+    return `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
+  })();
+
+  const goPrev = () => {
+    if (view === 'day') {
+      const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d);
+    } else if (view === 'week') setWeekOffset(o => o-1);
+    else setMonthOffset(o => o-1);
+  };
+  const goNext = () => {
+    if (view === 'day') {
+      const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d);
+    } else if (view === 'week') setWeekOffset(o => o+1);
+    else setMonthOffset(o => o+1);
+  };
+  const goToday = () => {
+    if (view === 'day') setSelectedDay(today);
+    else if (view === 'week') setWeekOffset(0);
+    else setMonthOffset(0);
+  };
+  const offsetIsZero = view === 'day'
+    ? formatDate(selectedDay) === todayStr
+    : view === 'week' ? weekOffset === 0 : monthOffset === 0;
+
+  // 🆕 月视图点某天的处理：手机跳日视图，桌面新建事件
+  const onMonthDayTap = (d) => {
+    if (isMobile) {
+      setSelectedDay(d);
+      setView('day');
+    } else {
+      openNewEvent(d);
+    }
+  };
 
   return (
-    _react2.default.createElement('div', { className: "w-full h-screen bg-slate-50 flex flex-col font-sans"     ,
-      style: { touchAction: _optionalChain([dragInfo, 'optionalAccess', _5 => _5.isDragging]) ? 'none' : undefined,
-               userSelect: _optionalChain([dragInfo, 'optionalAccess', _6 => _6.isDragging]) ? 'none' : undefined },}
-      /* Header */
-      , _react2.default.createElement('div', { className: "bg-white border-b border-slate-200 px-3 py-3 flex items-center justify-between shrink-0 gap-2"         ,}
-        , _react2.default.createElement('div', { className: "flex items-center gap-1 min-w-0"   ,}
-          , _react2.default.createElement('button', { onClick: goPrev, className: "p-1.5 hover:bg-slate-100 rounded-md transition shrink-0"    ,}
-            , _react2.default.createElement(_lucidereact.ChevronLeft, { className: "w-5 h-5 text-slate-600"  ,} )
-          )
-          , _react2.default.createElement('div', { className: "px-1 min-w-0" ,}
-            , _react2.default.createElement('div', { className: "text-base font-semibold text-slate-800 truncate"   ,}, headerLabel)
-            , !offsetIsZero && (
-              _react2.default.createElement('button', { onClick: goToday, className: "text-xs text-rose-500 hover:text-rose-700"  ,}, "← 回到今天" )
-            )
-          )
-          , _react2.default.createElement('button', { onClick: goNext, className: "p-1.5 hover:bg-slate-100 rounded-md transition shrink-0"    ,}
-            , _react2.default.createElement(_lucidereact.ChevronRight, { className: "w-5 h-5 text-slate-600"  ,} )
-          )
-        )
+    <div className="w-full h-screen bg-slate-50 flex flex-col font-sans"
+      style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
+               userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-3 py-3 flex items-center justify-between shrink-0 gap-2">
+        <div className="flex items-center gap-1 min-w-0">
+          <button onClick={goPrev} className="p-1.5 hover:bg-slate-100 rounded-md transition shrink-0">
+            <ChevronLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <div className="px-1 min-w-0">
+            <div className="text-base font-semibold text-slate-800 truncate">{headerLabel}</div>
+            {!offsetIsZero && (
+              <button onClick={goToday} className="text-xs text-rose-500 hover:text-rose-700">← 回到今天</button>
+            )}
+          </div>
+          <button onClick={goNext} className="p-1.5 hover:bg-slate-100 rounded-md transition shrink-0">
+            <ChevronRight className="w-5 h-5 text-slate-600" />
+          </button>
+        </div>
 
-        , _react2.default.createElement('div', { className: "flex items-center gap-1.5 shrink-0"   ,}
-          , _react2.default.createElement('div', { className: "flex bg-slate-100 rounded-full p-0.5"   ,}
-            , _react2.default.createElement('button', { onClick: () => setView('week'),
-              className: `px-3 py-1 text-xs font-medium rounded-full transition ${
-                view === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`,}, "周")
-            , _react2.default.createElement('button', { onClick: () => setView('month'),
-              className: `px-3 py-1 text-xs font-medium rounded-full transition ${
-                view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`,}, "月")
-          )
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* 🆕 视图切换：手机 月/日，桌面 周/月 */}
+          <div className="flex bg-slate-100 rounded-full p-0.5">
+            {isMobile ? (
+              <>
+                <button onClick={() => setView('month')}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                    view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}>月</button>
+                <button onClick={() => setView('day')}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                    view === 'day' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}>日</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setView('week')}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                    view === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}>周</button>
+                <button onClick={() => setView('month')}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                    view === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}>月</button>
+              </>
+            )}
+          </div>
 
-          , view === 'week' && (
-            _react2.default.createElement('div', { className: "hidden md:flex items-center gap-2 text-sm bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200"          ,}
-              , _react2.default.createElement(_lucidereact.Sparkles, { className: "w-4 h-4 text-emerald-500"  ,} )
-              , _react2.default.createElement('span', { className: "font-bold text-emerald-600" ,}, weekEventsCount.done)
-              , _react2.default.createElement('span', { className: "text-emerald-400",}, "/ " , weekEventsCount.total)
-            )
-          )
-          , _react2.default.createElement('button', { onClick: () => setManagingCats(true),
-            className: "p-1.5 hover:bg-slate-100 rounded-full text-slate-600 transition"    , title: "管理分类",}
-            , _react2.default.createElement(_lucidereact.Settings, { className: "w-5 h-5" ,} )
-          )
-          , _react2.default.createElement('button', { onClick: () => openNewEvent(today, 19),
-            className: "flex items-center gap-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-full text-sm font-medium transition shadow-sm"            ,}
-            , _react2.default.createElement(_lucidereact.Plus, { className: "w-4 h-4" , strokeWidth: 3,} )
-            , _react2.default.createElement('span', { className: "hidden sm:inline" ,}, "新建")
-          )
-        )
-      )
+          {view === 'week' && (
+            <div className="hidden md:flex items-center gap-2 text-sm bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+              <Sparkles className="w-4 h-4 text-emerald-500" />
+              <span className="font-bold text-emerald-600">{weekEventsCount.done}</span>
+              <span className="text-emerald-400">/ {weekEventsCount.total}</span>
+            </div>
+          )}
+          <button onClick={() => setManagingCats(true)}
+            className="p-1.5 hover:bg-slate-100 rounded-full text-slate-600 transition" title="管理分类">
+            <Settings className="w-5 h-5" />
+          </button>
+          <button onClick={() => openNewEvent(view === 'day' ? selectedDay : today, 19)}
+            className="flex items-center gap-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-full text-sm font-medium transition shadow-sm">
+            <Plus className="w-4 h-4" strokeWidth={3} />
+            <span className="hidden sm:inline">新建</span>
+          </button>
+        </div>
+      </div>
 
-      /* === WEEK VIEW === */
-      , view === 'week' && (
-        _react2.default.createElement(_react2.default.Fragment, null
-          , _react2.default.createElement('div', { className: "bg-white border-b border-slate-200 flex shrink-0"    ,}
-            , _react2.default.createElement('div', { style: {width: TIME_COL_WIDTH}, className: "shrink-0",})
-            , weekDays.map((d, i) => {
+      {/* === WEEK / DAY VIEW (统一渲染) === */}
+      {isTimelineView && (
+        <>
+          <div className="bg-white border-b border-slate-200 flex shrink-0">
+            <div style={{width: TIME_COL_WIDTH}} className="shrink-0"></div>
+            {timelineDays.map((d, i) => {
               const isToday = formatDate(d) === todayStr;
+              const wd = (d.getDay() || 7) - 1;
               return (
-                _react2.default.createElement('div', { key: i, className: "flex-1 py-2 text-center border-l border-slate-100 min-w-0"     ,}
-                  , _react2.default.createElement('div', { className: "text-xs text-slate-500" ,}, "周", dayNames[i])
-                  , _react2.default.createElement('div', { className: "mt-1 flex justify-center"  ,}
-                    , _react2.default.createElement('div', { className: `text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
+                <div key={i} className="flex-1 py-2 text-center border-l border-slate-100 min-w-0">
+                  <div className="text-xs text-slate-500">周{dayNames[wd]}</div>
+                  <div className="mt-1 flex justify-center">
+                    <div className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
                       isToday ? 'text-white bg-rose-500' : 'text-slate-800'
-                    }`,}, d.getDate())
-                  )
-                )
+                    }`}>{d.getDate()}</div>
+                  </div>
+                </div>
               );
-            })
-          )
+            })}
+          </div>
 
-          , _react2.default.createElement('div', { ref: gridRef, className: "flex-1 overflow-y-auto" ,}
-            , _react2.default.createElement('div', { className: "flex relative" ,}
-              , _react2.default.createElement('div', { style: {width: TIME_COL_WIDTH}, className: "shrink-0",}
-                , hours.map(h => (
-                  _react2.default.createElement('div', { key: h, style: {height:HOUR_HEIGHT}, className: "text-xs text-slate-400 text-right pr-2 -translate-y-2"    ,}
-                    , h, ":00"
-                  )
-                ))
-              )
+          <div ref={gridRef} className="flex-1 overflow-y-auto">
+            <div className="flex relative">
+              <div style={{width: TIME_COL_WIDTH}} className="shrink-0">
+                {hours.map(h => (
+                  <div key={h} style={{height:HOUR_HEIGHT}} className="text-xs text-slate-400 text-right pr-2 -translate-y-2">
+                    {h}:00
+                  </div>
+                ))}
+              </div>
 
-              , weekDays.map((d, dayIdx) => {
+              {timelineDays.map((d, dayIdx) => {
                 const dStr = formatDate(d);
                 const isToday = dStr === todayStr;
 
                 return (
-                  _react2.default.createElement('div', {
-                    key: dayIdx,
-                    'data-empty': "true",
-                    onClick: (e) => onColumnClick(e, d),
-                    className: `flex-1 border-l border-slate-100 relative cursor-pointer min-w-0 ${isToday ? 'bg-rose-50/30' : ''}`,}
+                  <div
+                    key={dayIdx}
+                    data-empty="true"
+                    onClick={(e) => onColumnClick(e, d)}
+                    className={`flex-1 border-l border-slate-100 relative cursor-pointer min-w-0 ${isToday ? 'bg-rose-50/30' : ''}`}
+                  >
+                    {hours.map(h => (
+                      <div key={h} data-empty="true" style={{height:HOUR_HEIGHT}} className="border-b border-slate-100"></div>
+                    ))}
 
-                    , hours.map(h => (
-                      _react2.default.createElement('div', { key: h, 'data-empty': "true", style: {height:HOUR_HEIGHT}, className: "border-b border-slate-100" ,})
-                    ))
-
-                    , displayEvents.map(ev => {
+                    {displayEvents.map(ev => {
                       const seg = getSegment(ev, dStr);
                       if (!seg) return null;
                       const top = (seg.start - START_HOUR) * HOUR_HEIGHT;
                       const height = (seg.end - seg.start) * HOUR_HEIGHT;
                       const style = getStyle(ev.category);
                       const missed = isMissed(ev, dStr);
-                      const isBeingDragged = _optionalChain([dragInfo, 'optionalAccess', _7 => _7.isDragging]) && dragInfo.id === ev.id;
+                      const isBeingDragged = dragInfo?.isDragging && dragInfo.id === ev.id;
 
                       let cardCls = '', circleCls = '';
                       if (missed) {
@@ -489,90 +565,90 @@ const getSegment = (ev, dayStr) => {
                       const showWho = ev.who && height >= (showLocation ? 90 : 70) && seg.isStart;
 
                       return (
-                        _react2.default.createElement('div', {
-                          key: `${ev.id}-${dStr}`,
-                          onPointerDown: (e) => handleEventPointerDown(e, ev),
-                          onDoubleClick: (e) => { e.stopPropagation(); setEditing({ ...ev }); },
-                          style: { top, height: height-3, touchAction: 'none' },
-                          className: `absolute left-1 right-1 ${roundCls} p-2 pr-7 text-left select-none ${cardCls} ${
+                        <div
+                          key={`${ev.id}-${dStr}`}
+                          onPointerDown={(e) => handleEventPointerDown(e, ev)}
+                          onDoubleClick={(e) => { e.stopPropagation(); setEditing({ ...ev }); }}
+                          style={{ top, height: height-3, touchAction: 'none' }}
+                          className={`absolute left-1 right-1 ${roundCls} p-2 pr-7 text-left select-none ${cardCls} ${
                             isBeingDragged ? 'shadow-lg ring-2 ring-rose-400' : ''
-                          }`,}
+                          }`}
+                        >
+                          {seg.isEnd && (
+                            <div className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${circleCls}`}>
+                              {ev.completed && <Check className="w-3 h-3 text-white" strokeWidth={4} />}
+                            </div>
+                          )}
 
-                          , seg.isEnd && (
-                            _react2.default.createElement('div', { className: `absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${circleCls}`,}
-                              , ev.completed && _react2.default.createElement(_lucidereact.Check, { className: "w-3 h-3 text-white"  , strokeWidth: 4,} )
-                            )
-                          )
-
-                          , seg.isStart && (
-                            _react2.default.createElement(_react2.default.Fragment, null
-                              , _react2.default.createElement('div', { className: `text-xs font-semibold truncate ${missed ? 'line-through' : ''}`,}
-                                , ev.title
-                                , seg.isMulti && _react2.default.createElement('span', { className: "ml-1 opacity-60" ,}, "→")
-                              )
-                              , _react2.default.createElement('div', { className: "text-xs opacity-75 truncate mt-0.5"   ,}
-                                , formatTime(ev.start), seg.isMulti ? ` 起` : ` - ${formatTime(ev.end)}`
-                              )
-                              , showLocation && (
-                                _react2.default.createElement('div', { className: "text-xs truncate mt-1 flex items-center opacity-80"     ,}
-                                  , _react2.default.createElement(_lucidereact.MapPin, { className: "w-3 h-3 shrink-0"  , strokeWidth: 1.75,} )
-                                  , _react2.default.createElement('span', { className: "ml-1 truncate" ,}, ev.location)
-                                )
-                              )
-                              , showWho && (
-                                _react2.default.createElement('div', { className: "text-xs truncate mt-0.5 flex items-center opacity-80"     ,}
-                                  , _react2.default.createElement(_lucidereact.Users, { className: "w-3 h-3 shrink-0"  , strokeWidth: 1.75,} )
-                                  , _react2.default.createElement('span', { className: "ml-1 truncate" ,}, ev.who)
-                                )
-                              )
-                            )
-                          )
-                          , !seg.isStart && (
-                            _react2.default.createElement('div', { className: "text-xs font-medium opacity-70 truncate"   ,}
-                              , _react2.default.createElement('span', { className: "opacity-60",}, "←"), " " , ev.title
-                              , !seg.isEnd && _react2.default.createElement('span', { className: "ml-1 opacity-60" ,}, "→")
-                            )
-                          )
-                          , !seg.isStart && seg.isEnd && (
-                            _react2.default.createElement('div', { className: "text-xs opacity-75 truncate mt-0.5"   ,}, "截止 " , formatTime(ev.end))
-                          )
-                        )
+                          {seg.isStart && (
+                            <>
+                              <div className={`text-xs font-semibold truncate ${missed ? 'line-through' : ''}`}>
+                                {ev.title}
+                                {seg.isMulti && <span className="ml-1 opacity-60">→</span>}
+                              </div>
+                              <div className="text-xs opacity-75 truncate mt-0.5">
+                                {formatTime(ev.start)}{seg.isMulti ? ` 起` : ` - ${formatTime(ev.end)}`}
+                              </div>
+                              {showLocation && (
+                                <div className="text-xs truncate mt-1 flex items-center opacity-80">
+                                  <MapPin className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                                  <span className="ml-1 truncate">{ev.location}</span>
+                                </div>
+                              )}
+                              {showWho && (
+                                <div className="text-xs truncate mt-0.5 flex items-center opacity-80">
+                                  <Users className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                                  <span className="ml-1 truncate">{ev.who}</span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {!seg.isStart && (
+                            <div className="text-xs font-medium opacity-70 truncate">
+                              <span className="opacity-60">←</span> {ev.title}
+                              {!seg.isEnd && <span className="ml-1 opacity-60">→</span>}
+                            </div>
+                          )}
+                          {!seg.isStart && seg.isEnd && (
+                            <div className="text-xs opacity-75 truncate mt-0.5">截止 {formatTime(ev.end)}</div>
+                          )}
+                        </div>
                       );
-                    })
+                    })}
 
-                    , isToday && (() => {
+                    {isToday && (() => {
                       const nowHour = today.getHours() + today.getMinutes()/60;
                       if (nowHour >= START_HOUR && nowHour <= END_HOUR) {
                         const top = (nowHour-START_HOUR)*HOUR_HEIGHT;
                         return (
-                          _react2.default.createElement('div', { style: {top}, className: "absolute left-0 right-0 z-10 pointer-events-none"    ,}
-                            , _react2.default.createElement('div', { className: "h-0.5 bg-rose-500 relative"  ,}
-                              , _react2.default.createElement('div', { className: "absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-rose-500"      ,})
-                            )
-                          )
+                          <div style={{top}} className="absolute left-0 right-0 z-10 pointer-events-none">
+                            <div className="h-0.5 bg-rose-500 relative">
+                              <div className="absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                            </div>
+                          </div>
                         );
                       }
                       return null;
-                    })()
-                  )
+                    })()}
+                  </div>
                 );
-              })
-            )
-          )
-        )
-      )
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
-      /* === MONTH VIEW === */
-      , view === 'month' && (
-        _react2.default.createElement(_react2.default.Fragment, null
-          , _react2.default.createElement('div', { className: "bg-white border-b border-slate-200 grid grid-cols-7 shrink-0"     ,}
-            , monthDayLabels.map((l, i) => (
-              _react2.default.createElement('div', { key: i, className: "py-2 text-center text-xs text-slate-500 border-l border-slate-100 first:border-l-0"      ,}, l)
-            ))
-          )
-          , _react2.default.createElement('div', { className: "flex-1 overflow-y-auto" ,}
-            , _react2.default.createElement('div', { className: "flex flex-col h-full"  ,}
-              , monthInfo.weeks.map((wDays, wIdx) => {
+      {/* === MONTH VIEW === */}
+      {view === 'month' && (
+        <>
+          <div className="bg-white border-b border-slate-200 grid grid-cols-7 shrink-0">
+            {monthDayLabels.map((l, i) => (
+              <div key={i} className="py-2 text-center text-xs text-slate-500 border-l border-slate-100 first:border-l-0">{l}</div>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex flex-col h-full">
+              {monthInfo.weeks.map((wDays, wIdx) => {
                 const bars = computeWeekBars(wDays);
                 const laneCap = 3;
                 const overflow = wDays.map((d, di) => {
@@ -581,50 +657,58 @@ const getSegment = (ev, dayStr) => {
                 });
 
                 return (
-                  _react2.default.createElement('div', { key: wIdx, className: "flex-1 grid grid-cols-7 relative border-b border-slate-100 last:border-b-0 min-h-0"       ,}
-                    , wDays.map((d, di) => {
+                  <div key={wIdx} className="flex-1 grid grid-cols-7 relative border-b border-slate-100 last:border-b-0 min-h-0">
+                    {wDays.map((d, di) => {
                       const dStr = formatDate(d);
                       const isToday = dStr === todayStr;
                       const inMonth = d.getMonth() === monthInfo.monthDate.getMonth();
                       return (
-                        _react2.default.createElement('div', {
-                          key: di,
-                          onClick: (e) => { if (e.target === e.currentTarget || e.target.dataset.empty) openNewEvent(d); },
-                          className: `relative border-l border-slate-100 first:border-l-0 cursor-pointer hover:bg-slate-50 transition ${
+                        <div
+                          key={di}
+                          onClick={(e) => {
+                            if (e.target === e.currentTarget || e.target.dataset.empty) onMonthDayTap(d);
+                          }}
+                          className={`relative border-l border-slate-100 first:border-l-0 cursor-pointer hover:bg-slate-50 transition ${
                             !inMonth ? 'bg-slate-50/50' : ''
-                          } ${isToday ? 'bg-rose-50/40' : ''}`,
-                          'data-empty': "true",}
-
-                          , _react2.default.createElement('div', { className: "flex justify-end p-1.5"  , 'data-empty': "true",}
-                            , _react2.default.createElement('div', { className: `text-xs w-6 h-6 flex items-center justify-center rounded-full font-medium ${
+                          } ${isToday ? 'bg-rose-50/40' : ''}`}
+                          data-empty="true"
+                        >
+                          <div className="flex justify-end p-1.5" data-empty="true">
+                            <div className={`text-xs w-6 h-6 flex items-center justify-center rounded-full font-medium ${
                               isToday ? 'bg-rose-500 text-white' :
                               inMonth ? 'text-slate-700' : 'text-slate-400'
-                            }`,}, d.getDate())
-                          )
-                          , _react2.default.createElement('div', { 'data-empty': "true", style: { height: laneCap * 22 + (overflow[di] > 0 ? 18 : 0) },})
-                          , overflow[di] > 0 && (
-                            _react2.default.createElement('button', {
-                              onClick: (e) => {
+                            }`}>{d.getDate()}</div>
+                          </div>
+                          <div data-empty="true" style={{ height: laneCap * 22 + (overflow[di] > 0 ? 18 : 0) }}></div>
+                          {overflow[di] > 0 && (
+                            <button
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                const w = new Date(wDays[0]);
-                                const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                                const baseMonday = new Date(today0);
-                                const bd = baseMonday.getDay() || 7;
-                                baseMonday.setDate(baseMonday.getDate() - bd + 1);
-                                const diffWeeks = Math.round((w - baseMonday) / (7*24*60*60*1000));
-                                setWeekOffset(diffWeeks);
-                                setView('week');
-                              },
-                              className: "absolute left-1 right-1 text-xs text-slate-500 hover:text-rose-600 text-left px-1.5 py-0.5"        ,
-                              style: { top: 28 + laneCap * 22 },}
-, "+"
-                              , overflow[di], " 更多"
-                            )
-                          )
-                        )
+                                // 🆕 手机点 +N 直接跳到该日的"日视图"；桌面跳到那一周的周视图
+                                if (isMobile) {
+                                  setSelectedDay(d);
+                                  setView('day');
+                                } else {
+                                  const w = new Date(wDays[0]);
+                                  const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                  const baseMonday = new Date(today0);
+                                  const bd = baseMonday.getDay() || 7;
+                                  baseMonday.setDate(baseMonday.getDate() - bd + 1);
+                                  const diffWeeks = Math.round((w - baseMonday) / (7*24*60*60*1000));
+                                  setWeekOffset(diffWeeks);
+                                  setView('week');
+                                }
+                              }}
+                              className="absolute left-1 right-1 text-xs text-slate-500 hover:text-rose-600 text-left px-1.5 py-0.5"
+                              style={{ top: 28 + laneCap * 22 }}
+                            >
+                              +{overflow[di]} 更多
+                            </button>
+                          )}
+                        </div>
                       );
-                    })
-                    , bars.filter(b => b.lane < laneCap).map((bar, idx) => {
+                    })}
+                    {bars.filter(b => b.lane < laneCap).map((bar, idx) => {
                       const style = getStyle(bar.ev.category);
                       const missed = isMissed(bar.ev);
                       const top = 28 + bar.lane * 22;
@@ -635,237 +719,242 @@ const getSegment = (ev, dayStr) => {
                       else if (bar.ev.completed) cls = `${style.deep} ${style.deepText}`;
                       else cls = `${style.barLight} ${style.text}`;
                       return (
-                        _react2.default.createElement('button', {
-                          key: `${bar.ev.id}-${idx}`,
-                          onClick: (e) => { e.stopPropagation(); setEditing({ ...bar.ev }); },
-                          className: `absolute rounded text-xs font-medium px-1.5 py-0.5 truncate text-left ${cls}`,
-                          style: {
+                        <button
+                          key={`${bar.ev.id}-${idx}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // 🆕 手机点事件块 → 跳到那天的日视图；桌面 → 直接编辑
+                            if (isMobile) {
+                              const targetDate = new Date(bar.ev.date);
+                              setSelectedDay(targetDate);
+                              setView('day');
+                            } else {
+                              setEditing({ ...bar.ev });
+                            }
+                          }}
+                          className={`absolute rounded text-xs font-medium px-1.5 py-0.5 truncate text-left ${cls}`}
+                          style={{
                             top,
                             left: `calc(${leftPct}% + 4px)`,
                             width: `calc(${widthPct}% - 8px)`,
                             height: 18,
-                          },
-                          title: bar.ev.title,}
-
-                          , bar.ev.completed && '✓ '
-                          , bar.startCol === bar.endCol && (
-                            _react2.default.createElement('span', { className: "opacity-60 mr-1" ,}, formatTime(bar.ev.start))
-                          )
-                          , bar.ev.title
-                        )
+                          }}
+                          title={bar.ev.title}
+                        >
+                          {bar.ev.completed && '✓ '}
+                          {bar.startCol === bar.endCol && (
+                            <span className="opacity-60 mr-1">{formatTime(bar.ev.start)}</span>
+                          )}
+                          {bar.ev.title}
+                        </button>
                       );
-                    })
-                  )
+                    })}
+                  </div>
                 );
-              })
-            )
-          )
-        )
-      )
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
-      /* Footer */
-      , _react2.default.createElement('div', { className: "bg-white border-t border-slate-200 px-3 py-2 flex items-center gap-3 text-xs text-slate-600 shrink-0 flex-wrap"           ,}
-        , categories.map(c => (
-          _react2.default.createElement('div', { key: c.id, className: "flex items-center gap-1.5"  ,}
-            , _react2.default.createElement('div', { className: `w-2.5 h-2.5 rounded-full ${COLOR_PALETTE[c.color].dot}`,})
-            , _react2.default.createElement('span', null, c.name)
-          )
-        ))
-      )
+      {/* Footer */}
+      <div className="bg-white border-t border-slate-200 px-3 py-2 flex items-center gap-3 text-xs text-slate-600 shrink-0 flex-wrap">
+        {categories.map(c => (
+          <div key={c.id} className="flex items-center gap-1.5">
+            <div className={`w-2.5 h-2.5 rounded-full ${COLOR_PALETTE[c.color].dot}`}></div>
+            <span>{c.name}</span>
+          </div>
+        ))}
+      </div>
 
-      /* === Edit / New event modal === */
-      , editing && (
-        _react2.default.createElement('div', { className: "fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"        ,
-          onClick: () => setEditing(null),}
-          , _react2.default.createElement('div', { className: "bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto"     , onClick: e => e.stopPropagation(),}
-            , _react2.default.createElement('div', { className: "flex items-center justify-between px-5 pt-4 pb-2"     ,}
-              , _react2.default.createElement('h2', { className: "text-lg font-semibold text-slate-800"  ,}
-                , editing.id == null ? '新建事项' : '编辑事项'
-              )
-              , _react2.default.createElement('button', { onClick: () => setEditing(null), className: "p-1 hover:bg-slate-100 rounded-md"  ,}
-                , _react2.default.createElement(_lucidereact.X, { className: "w-5 h-5 text-slate-500"  ,} )
-              )
-            )
+      {/* === Edit / New event modal === */}
+      {editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={() => setEditing(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <h2 className="text-lg font-semibold text-slate-800">
+                {editing.id == null ? '新建事项' : '编辑事项'}
+              </h2>
+              <button onClick={() => setEditing(null)} className="p-1 hover:bg-slate-100 rounded-md">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
 
-            , _react2.default.createElement('div', { className: "px-5 pb-4 space-y-3"  ,}
-              , _react2.default.createElement('div', null
-                , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 block"    ,}, "事项名称")
-                , _react2.default.createElement('input', { autoFocus: true, className: inputCls,
-                  value: editing.title,
-                  onChange: e => setEditing({...editing, title: e.target.value}),}
-                )
-              )
+            <div className="px-5 pb-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">事项名称</label>
+                <input autoFocus className={inputCls}
+                  value={editing.title}
+                  onChange={e => setEditing({...editing, title: e.target.value})}
+                />
+              </div>
 
-              , _react2.default.createElement('div', null
-                , _react2.default.createElement('div', { className: "flex items-center justify-between mb-1"   ,}
-                  , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500"  ,}, "分类")
-                  , _react2.default.createElement('button', { onClick: () => setManagingCats(true),
-                    className: "text-xs text-rose-500 hover:text-rose-700"  ,}, "+ 管理分类" )
-                )
-                , _react2.default.createElement('div', { className: "grid grid-cols-3 gap-1.5"  ,}
-                  , categories.map(c => {
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-slate-500">分类</label>
+                  <button onClick={() => setManagingCats(true)}
+                    className="text-xs text-rose-500 hover:text-rose-700">+ 管理分类</button>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {categories.map(c => {
                     const selected = editing.category === c.id;
                     const style = COLOR_PALETTE[c.color];
                     return (
-                      _react2.default.createElement('button', { key: c.id,
-                        onClick: () => setEditing({...editing, category: c.id}),
-                        className: `flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-sm transition ${
+                      <button key={c.id}
+                        onClick={() => setEditing({...editing, category: c.id})}
+                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-sm transition ${
                           selected ? `${style.light} ${style.text} ${style.border} ring-2 ring-offset-1 ring-rose-300 font-medium`
                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`,}
-                        , _react2.default.createElement('div', { className: `w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`,})
-                        , _react2.default.createElement('span', { className: "truncate",}, c.name)
-                      )
+                        }`}>
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`}></div>
+                        <span className="truncate">{c.name}</span>
+                      </button>
                     );
-                  })
-                )
-              )
+                  })}
+                </div>
+              </div>
 
-              , _react2.default.createElement('div', { className: "grid grid-cols-2 gap-2"  ,}
-                , _react2.default.createElement('div', null
-                  , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 block"    ,}, "开始日期")
-                  , _react2.default.createElement('input', { type: "date", className: inputCls,
-                    value: editing.date,
-                    onChange: e => {
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">开始日期</label>
+                  <input type="date" className={inputCls}
+                    value={editing.date}
+                    onChange={e => {
                       const newDate = e.target.value;
                       const newEnd = editing.endDate < newDate ? newDate : editing.endDate;
                       setEditing({...editing, date: newDate, endDate: newEnd});
-                    },}
-                  )
-                )
-                , _react2.default.createElement('div', null
-                  , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 block"    ,}, "结束日期")
-                  , _react2.default.createElement('input', { type: "date", className: inputCls,
-                    min: editing.date,
-                    value: editing.endDate,
-                    onChange: e => setEditing({...editing, endDate: e.target.value}),}
-                  )
-                )
-              )
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">结束日期</label>
+                  <input type="date" className={inputCls}
+                    min={editing.date}
+                    value={editing.endDate}
+                    onChange={e => setEditing({...editing, endDate: e.target.value})}
+                  />
+                </div>
+              </div>
 
-              , _react2.default.createElement('div', { className: "grid grid-cols-2 gap-2"  ,}
-                , _react2.default.createElement('div', null
-                  , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 block"    ,}, "开始时间")
-                  , _react2.default.createElement('input', { type: "time", className: inputCls,
-                    value: floatToTimeStr(editing.start),
-                    onChange: e => setEditing({...editing, start: timeStrToFloat(e.target.value)}),}
-                  )
-                )
-                , _react2.default.createElement('div', null
-                  , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 block"    ,}, "结束时间")
-                  , _react2.default.createElement('input', { type: "time", className: inputCls,
-                    value: floatToTimeStr(editing.end),
-                    onChange: e => setEditing({...editing, end: timeStrToFloat(e.target.value)}),}
-                  )
-                )
-              )
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">开始时间</label>
+                  <input type="time" className={inputCls}
+                    value={floatToTimeStr(editing.start)}
+                    onChange={e => setEditing({...editing, start: timeStrToFloat(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">结束时间</label>
+                  <input type="time" className={inputCls}
+                    value={floatToTimeStr(editing.end)}
+                    onChange={e => setEditing({...editing, end: timeStrToFloat(e.target.value)})}
+                  />
+                </div>
+              </div>
 
-              , editing.endDate !== editing.date && (
-                _react2.default.createElement('div', { className: "text-xs text-slate-500 bg-slate-50 rounded-md px-3 py-1.5 border border-slate-200"       ,}, "跨天事项："
-                  , editing.date, " " , floatToTimeStr(editing.start), " → "  , editing.endDate, " " , floatToTimeStr(editing.end)
-                )
-              )
+              {editing.endDate !== editing.date && (
+                <div className="text-xs text-slate-500 bg-slate-50 rounded-md px-3 py-1.5 border border-slate-200">
+                  跨天事项：{editing.date} {floatToTimeStr(editing.start)} → {editing.endDate} {floatToTimeStr(editing.end)}
+                </div>
+              )}
 
-              , _react2.default.createElement('div', null
-                , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5"      ,}
-                  , _react2.default.createElement(_lucidereact.MapPin, { className: "w-3.5 h-3.5" , strokeWidth: 1.75,} )
-                  , _react2.default.createElement('span', null, "地点")
-                )
-                , _react2.default.createElement('input', { className: inputCls,
-                  value: editing.location,
-                  onChange: e => setEditing({...editing, location: e.target.value}),}
-                )
-              )
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span>地点</span>
+                </label>
+                <input className={inputCls}
+                  value={editing.location}
+                  onChange={e => setEditing({...editing, location: e.target.value})}
+                />
+              </div>
 
-              , _react2.default.createElement('div', null
-                , _react2.default.createElement('label', { className: "text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5"      ,}
-                  , _react2.default.createElement(_lucidereact.Users, { className: "w-3.5 h-3.5" , strokeWidth: 1.75,} )
-                  , _react2.default.createElement('span', null, "和谁")
-                )
-                , _react2.default.createElement('input', { className: inputCls,
-                  value: editing.who,
-                  onChange: e => setEditing({...editing, who: e.target.value}),}
-                )
-              )
-            )
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span>和谁</span>
+                </label>
+                <input className={inputCls}
+                  value={editing.who}
+                  onChange={e => setEditing({...editing, who: e.target.value})}
+                />
+              </div>
+            </div>
 
-            , _react2.default.createElement('div', { className: "flex items-center justify-between px-5 py-3 bg-slate-50 rounded-b-2xl"      ,}
-              , editing.id != null ? (
-                _react2.default.createElement('button', { onClick: deleteEvent,
-                  className: "flex items-center gap-1 text-rose-500 hover:text-rose-700 text-sm px-2 py-1.5 rounded-md hover:bg-rose-50"         ,}
-                  , _react2.default.createElement(_lucidereact.Trash2, { className: "w-4 h-4" ,} ), " 删除"
-                )
-              ) : _react2.default.createElement('div', null )
-              , _react2.default.createElement('div', { className: "flex gap-2" ,}
-                , _react2.default.createElement('button', { onClick: () => setEditing(null),
-                  className: "px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-200 rounded-lg"     ,}, "取消")
-                , _react2.default.createElement('button', { onClick: saveEvent, disabled: !editing.title.trim(),
-                  className: "px-4 py-1.5 text-sm bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"         ,}, "保存"
+            <div className="flex items-center justify-between px-5 py-3 bg-slate-50 rounded-b-2xl">
+              {editing.id != null ? (
+                <button onClick={deleteEvent}
+                  className="flex items-center gap-1 text-rose-500 hover:text-rose-700 text-sm px-2 py-1.5 rounded-md hover:bg-rose-50">
+                  <Trash2 className="w-4 h-4" /> 删除
+                </button>
+              ) : <div />}
+              <div className="flex gap-2">
+                <button onClick={() => setEditing(null)}
+                  className="px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-200 rounded-lg">取消</button>
+                <button onClick={saveEvent} disabled={!editing.title.trim()}
+                  className="px-4 py-1.5 text-sm bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-                )
-              )
-            )
-          )
-        )
-      )
-
-      /* === Manage Categories Modal === */
-      , managingCats && (
-        _react2.default.createElement('div', { className: "fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"        ,
-          onClick: () => setManagingCats(false),}
-          , _react2.default.createElement('div', { className: "bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto"     , onClick: e => e.stopPropagation(),}
-            , _react2.default.createElement('div', { className: "flex items-center justify-between px-5 pt-4 pb-2"     ,}
-              , _react2.default.createElement('h2', { className: "text-lg font-semibold text-slate-800"  ,}, "管理分类")
-              , _react2.default.createElement('button', { onClick: () => setManagingCats(false), className: "p-1 hover:bg-slate-100 rounded-md"  ,}
-                , _react2.default.createElement(_lucidereact.X, { className: "w-5 h-5 text-slate-500"  ,} )
-              )
-            )
-            , _react2.default.createElement('div', { className: "px-5 pb-3 space-y-2 max-h-96 overflow-y-auto"    ,}
-              , categories.map(c => {
+      {/* === Manage Categories Modal === */}
+      {managingCats && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={() => setManagingCats(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <h2 className="text-lg font-semibold text-slate-800">管理分类</h2>
+              <button onClick={() => setManagingCats(false)} className="p-1 hover:bg-slate-100 rounded-md">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="px-5 pb-3 space-y-2 max-h-96 overflow-y-auto">
+              {categories.map(c => {
                 const style = COLOR_PALETTE[c.color];
                 return (
-                  _react2.default.createElement('div', { key: c.id, className: `border rounded-lg p-3 ${style.light} ${style.border}`,}
-                    , _react2.default.createElement('div', { className: "flex items-center gap-2 mb-2"   ,}
-                      , _react2.default.createElement('div', { className: `w-3 h-3 rounded-full ${style.dot} shrink-0`,})
-                      , _react2.default.createElement('input', { value: c.name,
-                        onChange: e => updateCat(c.id, { name: e.target.value }),
-                        className: "flex-1 px-2 py-1 bg-white/70 border border-white rounded text-sm focus:outline-none focus:ring-1 focus:ring-rose-300"          ,}
-                      )
-                      , _react2.default.createElement('button', { onClick: () => deleteCat(c.id),
-                        disabled: categories.length <= 1,
-                        className: "text-rose-500 hover:bg-white/50 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"     ,}
-                        , _react2.default.createElement(_lucidereact.Trash2, { className: "w-4 h-4" ,} )
-                      )
-                    )
-                    , _react2.default.createElement('div', { className: "grid grid-cols-10 gap-1.5"  ,}
-                      , PALETTE_KEYS.map(ck => {
+                  <div key={c.id} className={`border rounded-lg p-3 ${style.light} ${style.border}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${style.dot} shrink-0`}></div>
+                      <input value={c.name}
+                        onChange={e => updateCat(c.id, { name: e.target.value })}
+                        className="flex-1 px-2 py-1 bg-white/70 border border-white rounded text-sm focus:outline-none focus:ring-1 focus:ring-rose-300"
+                      />
+                      <button onClick={() => deleteCat(c.id)}
+                        disabled={categories.length <= 1}
+                        className="text-rose-500 hover:bg-white/50 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-10 gap-1.5">
+                      {PALETTE_KEYS.map(ck => {
                         const ps = COLOR_PALETTE[ck];
                         const selected = c.color === ck;
                         return (
-                          _react2.default.createElement('button', { key: ck, onClick: () => updateCat(c.id, { color: ck }),
-                            className: `aspect-square rounded-full ${ps.dot} transition ${
+                          <button key={ck} onClick={() => updateCat(c.id, { color: ck })}
+                            className={`aspect-square rounded-full ${ps.dot} transition ${
                               selected ? 'ring-2 ring-offset-2 ring-slate-700 scale-110' : 'hover:scale-110'
-                            }`,}
-                          )
+                            }`}
+                          />
                         );
-                      })
-                    )
-                  )
+                      })}
+                    </div>
+                  </div>
                 );
-              })
-              , _react2.default.createElement('button', { onClick: addCat,
-                className: "w-full border-2 border-dashed border-slate-300 rounded-lg py-2.5 text-slate-500 hover:bg-slate-50 hover:border-slate-400 text-sm flex items-center justify-center gap-1 transition"              ,}
-                , _react2.default.createElement(_lucidereact.Plus, { className: "w-4 h-4" ,} ), " 添加新分类"
-              )
-            )
-          )
-        )
-      )
-    )
+              })}
+              <button onClick={addCat}
+                className="w-full border-2 border-dashed border-slate-300 rounded-lg py-2.5 text-slate-500 hover:bg-slate-50 hover:border-slate-400 text-sm flex items-center justify-center gap-1 transition">
+                <Plus className="w-4 h-4" /> 添加新分类
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
-} exports.default = PlannerApp;
-</script></head>
-  <body>
-  
-
-<div id="preview-app"></div></body></html>
+}
